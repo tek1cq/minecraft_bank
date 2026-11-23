@@ -8,7 +8,7 @@ Bank is a lightweight banking system for CC:Tweaked, designed for Minecraft 1.21
 | --- | --- |
 | `bank_server.lua` | Runs on the central computer and processes registrations, balance checks and transfers. |
 | `bank_pocket.lua` | Client application for an Advanced Pocket Computer. |
-| `bank_admin.lua` | Looks up accounts, adjusts balances, blocks accounts and displays transaction history and statistics. |
+| `bank_admin.lua` | Creates accounts and one-time registration codes, looks up accounts, adjusts balances, blocks accounts and displays history and statistics. |
 | `bank_init.lua` | Creates the database directory and initial files without replacing existing data. |
 | `bank_check.lua` | Displays connected peripherals and modem information. |
 | `bank_net_test.lua` | Tests the Rednet connection between computers 203 and 204. |
@@ -24,7 +24,7 @@ The Pocket client sends requests over the Rednet protocol named `bank`. Its serv
 
 ## Stored data
 
-Account records, transaction history and bank settings are stored in the `bank_data` directory. The initialization program leaves existing database files untouched.
+Account records, transaction history, registration codes and bank settings are stored in the `bank_data` directory. Registration codes remain stored after use and cannot be reused. Administrators create codes in `bank_admin.lua`; players enter a code and choose their six-digit PIN in the Pocket client. The initialization program leaves existing database files untouched.
 
 ## Security
 
