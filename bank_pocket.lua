@@ -287,7 +287,7 @@ end
 local function ask(title, prompt, hidden)
     drawHeader(title, tr("keyboard"))
     drawMessage(prompt, 9, palette.text)
-    drawPanel(12, "                                ", palette.goldLight)
+    drawPanel(12, " ", palette.goldLight)
     term.setBackgroundColor(palette.surface)
     term.setTextColor(palette.goldLight)
     term.setCursorPos(4, 12)
