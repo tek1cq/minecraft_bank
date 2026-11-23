@@ -127,20 +127,20 @@ local function clear()
 end
 
 local function center(y, value, fg)
-    -- Use the physical pocket display, not a possibly redirected terminal window.
-    local display = term.native()
-    local screenW, screenH = display.getSize()
+    -- All centered UI text uses the same active terminal and the same width calculation.
+    local screenW, screenH = term.getSize()
     if y < 1 or y > screenH then
         return
     end
 
-    local valueText = cutText(tostring(value), math.max(1, screenW))
-    local leftPadding = math.max(0, math.floor((screenW - #valueText) / 2))
+    local valueText = cutText(tostring(value), screenW)
+    local leftPadding = math.floor((screenW - #valueText) / 2)
 
-    display.setBackgroundColor(colors.black)
-    display.setTextColor(fg or colors.white)
-    display.setCursorPos(1, y)
-    display.write(string.rep(" ", leftPadding) .. valueText)
+    term.setBackgroundColor(colors.black)
+    term.setTextColor(fg or colors.white)
+    term.setCursorPos(1, y)
+    term.write(string.rep(" ", leftPadding))
+    term.write(valueText)
 end
 
 local function separator(y)
@@ -170,13 +170,14 @@ local function header(title, subtitle)
 end
 
 local function addButton(id, label, y, key)
-    if y < 1 or y > H then
+    local screenW, screenH = term.getSize()
+    if y < 1 or y > screenH then
         return
     end
 
-    local width = math.min(W - 2, math.max(10, textWidth(label) + 6))
+    local width = math.min(screenW - 2, math.max(10, textWidth(label) + 6))
     local safeLabel = cutText(label, math.max(1, width - 4))
-    local x = math.max(1, math.floor((W - width) / 2) + 1)
+    local x = math.max(1, math.floor((screenW - width) / 2) + 1)
     local buttonText = "[ " .. safeLabel .. " ]"
     local textX = x + math.floor((width - textWidth(buttonText)) / 2)
 
