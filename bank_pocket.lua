@@ -135,12 +135,10 @@ local function center(y, value, fg)
 
     local bankText = cutText(tr("bank"), screenW)
     local bankX = math.floor((screenW - #bankText) / 2) + 1
-    -- BANK has an even width, so its visual midpoint is between its two middle columns.
-    local centerX = bankX + math.floor(#bankText / 2)
 
     local valueText = cutText(tostring(value), screenW)
-    -- Shift all labels one column right to match BANK's visible center.
-    local textX = centerX - math.floor(#valueText / 2) + 1
+    -- Align by the exact left edge of BANK and the width difference.
+    local textX = bankX + math.floor((#bankText - #valueText) / 2)
     textX = math.max(1, math.min(textX, screenW - #valueText + 1))
 
     term.setBackgroundColor(colors.black)
