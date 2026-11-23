@@ -38,7 +38,6 @@ local messages = {
     nextPage = "NEXT",
     transfer = "SEND MONEY",
     refresh = "REFRESH BALANCE",
-    logout = "SIGN OUT",
     available = "AVAILABLE BALANCE",
     accountId = "ACCOUNT ID",
     input = "SECURE INPUT",
@@ -775,8 +774,7 @@ local function accountMenu()
         drawButton("transfer", tr("transfer"), 12, "2")
         drawButton("history", tr("history"), 14, "3")
         drawButton("refresh", tr("refresh"), 16, "4")
-        drawButton("logout", tr("logout"), 18, "0")
-        drawFooter("1 ACCOUNT  2 SEND  3 HISTORY  4 REFRESH  0 EXIT")
+        drawFooter("1 ACCOUNT  2 SEND  3 HISTORY  4 REFRESH")
 
         local choice = waitChoice()
 
@@ -790,11 +788,6 @@ local function accountMenu()
             if updateBalance() then
                 pause(tr("balanceUpdated"))
             end
-        elseif choice == "logout" then
-            accountId = nil
-            accountPin = nil
-            accountName = nil
-            balance = 0
         end
     end
 end
