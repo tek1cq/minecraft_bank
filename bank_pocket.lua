@@ -143,7 +143,7 @@ local function center(y, value, fg)
 end
 
 local function separator(y)
-    -- A thin gold rule, rather than a thick filled bar.
+    -- Use plain ASCII because the pocket terminal font may not support box-drawing glyphs.
     local screenW, screenH = term.getSize()
     if y < 1 or y > screenH then
         return
@@ -151,7 +151,7 @@ local function separator(y)
     term.setBackgroundColor(colors.black)
     term.setTextColor(colors.orange)
     term.setCursorPos(2, y)
-    write(string.rep("─", math.max(1, screenW - 2)))
+    write(string.rep("-", math.max(1, screenW - 2)))
     color(colors.black, colors.white)
 end
 
