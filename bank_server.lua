@@ -5,6 +5,7 @@ local SETTINGS = DATA .. "/settings.db"
 local PROTOCOL = "bank"
 term.clear()
 term.setCursorPos(1, 1)
+
 local function load(path, fallback)
     if not fs.exists(path) then
         return fallback
@@ -18,6 +19,7 @@ local function load(path, fallback)
     end
     error("Database error: " .. path)
 end
+
 local function save(path, data)
     local file = fs.open(path, "w")
     file.write(textutils.serialize(data))
@@ -33,9 +35,11 @@ local settings = load(SETTINGS, {
     currency = "BC",
     bankName = "Bank"
 })
+
 local function findAccount(id)
     return accounts.accounts[tostring(id)]
 end
+
 local function log(action, from, to, amount)
     table.insert(history, {
         time = os.epoch("utc"),
@@ -46,9 +50,11 @@ local function log(action, from, to, amount)
     })
     save(HISTORY, history)
 end
+
 local function reply(sender, data)
     rednet.send(sender, data, PROTOCOL)
 end
+
 local function handle(sender, request)
     if type(request) ~= "table" then
         return {ok = false, error = "INVALID REQUEST"}
@@ -159,6 +165,7 @@ print("Network: READY")
 print("--------------------------------")
 print("Waiting for requests...")
 print("")
+
 while true do
     local sender, request = rednet.receive(PROTOCOL)
     local ok, response = pcall(handle, sender, request)
