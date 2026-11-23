@@ -493,8 +493,8 @@ local function transfer()
     drawText(13, tostring(amount) .. " BC", palette.goldLight)
     drawText(15, tr("confirmTransfer"), palette.text)
 
-    drawButton("yes", tr("confirm"), 17, "1", "primary")
-    drawButton("no", tr("cancel"), 19, "2")
+    drawButton("yes", tr("confirm"), 16, "1", "primary")
+    drawButton("no", tr("cancel"), 18, "2")
     drawFooter("1 CONFIRM  |  2 CANCEL")
 
     if waitChoice() ~= "yes" then
@@ -545,10 +545,11 @@ local function accountMenu()
         drawText(10, tostring(balance) .. " BC", palette.goldLight)
         drawLine(12, "-", palette.surface)
 
-        drawButton("balance", tr("myAccount"), 13, "1", "primary")
-        drawButton("transfer", tr("transfer"), 16, "2")
-        drawButton("refresh", tr("refresh"), 18, "3")
-        drawFooter("1 ACCOUNT  2 SEND  3 REFRESH")
+        drawButton("balance", tr("myAccount"), 11, "1", "primary")
+        drawButton("transfer", tr("transfer"), 13, "2")
+        drawButton("refresh", tr("refresh"), 15, "3")
+        drawButton("logout", tr("logout"), 17, "0")
+        drawFooter("1 ACCOUNT  2 SEND  3 REFRESH  0 EXIT")
 
         local choice = waitChoice()
 
