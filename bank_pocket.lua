@@ -337,7 +337,9 @@ local function login()
         id = id
     })
 
-    if not check.ok then
+    -- Older server instances may not yet support CHECK_ID.
+    -- In that case, continue with the regular PIN check for compatibility.
+    if not check.ok and check.error ~= "UNKNOWN ACTION" then
         showError(check)
         return false
     end
@@ -524,7 +526,6 @@ end
 while true do
     header(tr("welcome"))
     center(8, tr("subtitle"), colors.gray)
-    center(9, "FAST  |  SIMPLE  |  SECURE", colors.orange)
 
     addButton("login", tr("login"), 12, "1")
     addButton("register", tr("register"), 15, "2")
