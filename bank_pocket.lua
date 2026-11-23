@@ -1,66 +1,86 @@
 local SERVER_ID = 203
 local PROTOCOL = "bank"
 local TIMEOUT = 8
-local buttons = {}
+
 local accountId
 local accountPin
 local accountName
 local balance = 0
-local messages = {
-        bank = "BANK",
-        welcome = "WELCOME",
-        subtitle = "ELECTRONIC BANK",
-        login = "LOG IN",
-        register = "OPEN ACCOUNT",
-        cabinet = "ACCOUNT",
-        myAccount = "MY ACCOUNT",
-        transfer = "TRANSFER",
-        refresh = "REFRESH BALANCE",
-        logout = "LOG OUT",
-        balance = "BALANCE",
-        available = "AVAILABLE BALANCE",
-        accountNumber = "ACCOUNT ID",
-        input = "INPUT",
-        keyboard = "USE KEYBOARD",
-        continueText = "CONTINUE",
-        back = "BACK",
-        notice = "NOTICE",
-        error = "ERROR",
-        bankId = "Bank ID:",
-        pin = "Enter PIN:",
-        nickname = "Minecraft nickname:",
-        newPin = "Create a 6-digit PIN:",
-        repeatPin = "Repeat PIN:",
-        invalidId = "Invalid ID",
-        invalidPin = "PIN must contain 6 digits",
-        pinsDiffer = "PINs do not match",
-        created = "ACCOUNT CREATED",
-        yourId = "YOUR BANK ID",
-        credited = "Credited: ",
-        recipientId = "Recipient ID:",
-        amount = "Transfer amount:",
-        invalidRecipient = "Invalid recipient ID",
-        invalidAmount = "Invalid amount",
-        notEnough = "Not enough funds",
-        confirmation = "CONFIRMATION",
-        confirmTransfer = "Confirm this transfer?",
-        confirm = "CONFIRM",
-        cancel = "CANCEL",
-        cancelled = "Transfer cancelled",
-        completed = "TRANSFER COMPLETE",
-        sent = "Successfully sent",
-        recipient = "Recipient: ",
-        done = "DONE",
-        balanceUpdated = "Balance updated",
-        noModem = "No modem found",
-        connectionError = "CONNECTION ERROR",
-        noServer = "No response from server",
-        badResponse = "Invalid server response",
-        unknownError = "Unknown error",
-        secure = "BANK  |  SECURE SYSTEM",
-        yes = "YES",
-        no = "NO"
+local buttons = {}
+
+local palette = {
+    background = colors.black,
+    surface = colors.gray,
+    surfaceDark = colors.lightGray,
+    gold = colors.orange,
+    goldLight = colors.yellow,
+    text = colors.white,
+    muted = colors.lightGray,
+    success = colors.lime,
+    danger = colors.red
 }
+
+local messages = {
+    bank = "BANK",
+    welcome = "WELCOME",
+    subtitle = "PRIVATE DIGITAL BANKING",
+    login = "SIGN IN",
+    register = "OPEN ACCOUNT",
+    account = "YOUR ACCOUNT",
+    myAccount = "ACCOUNT DETAILS",
+    transfer = "SEND MONEY",
+    refresh = "REFRESH BALANCE",
+    logout = "SIGN OUT",
+    available = "AVAILABLE BALANCE",
+    accountId = "ACCOUNT ID",
+    input = "SECURE INPUT",
+    keyboard = "TYPE USING KEYBOARD",
+    back = "BACK",
+    continueText = "CONTINUE",
+    notice = "NOTICE",
+    error = "SOMETHING WENT WRONG",
+    bankId = "Enter your Bank ID",
+    pin = "Enter your 6-digit PIN",
+    nickname = "Choose a Minecraft nickname",
+    newPin = "Create a 6-digit PIN",
+    repeatPin = "Confirm your PIN",
+    invalidId = "Enter a valid Bank ID",
+    invalidPin = "PIN must contain 6 digits",
+    pinsDiffer = "The PINs do not match",
+    created = "ACCOUNT READY",
+    yourId = "YOUR NEW BANK ID",
+    credited = "STARTING BALANCE",
+    recipientId = "Recipient Bank ID",
+    amount = "Amount in BC",
+    invalidRecipient = "Enter a valid recipient ID",
+    invalidAmount = "Enter a positive whole amount",
+    notEnough = "Your balance is too low",
+    confirmation = "REVIEW TRANSFER",
+    confirmTransfer = "Send this payment?",
+    confirm = "CONFIRM PAYMENT",
+    cancel = "CANCEL",
+    cancelled = "Payment cancelled",
+    completed = "PAYMENT SENT",
+    sent = "TRANSFERRED",
+    recipient = "TO ACCOUNT",
+    done = "DONE",
+    balanceUpdated = "Your balance is up to date",
+    noModem = "No modem is available",
+    connectionError = "CONNECTION ERROR",
+    noServer = "The bank server did not respond",
+    badResponse = "The server sent an invalid response",
+    unknownError = "An unexpected error occurred",
+    accountNotFound = "No account with this ID",
+    invalidLogin = "Incorrect PIN",
+    blocked = "This account is blocked",
+    invalidName = "Nickname must be 3-20 characters",
+    nameTaken = "This nickname is already registered",
+    recipientMissing = "Recipient not found or unavailable",
+    selfTransfer = "You cannot pay your own account",
+    unknownAction = "The server does not support this request",
+    serverError = "The server encountered an error"
+}
+
 local serverErrors = {
     ["INVALID ID OR PIN"] = "invalidLogin",
     ["ACCOUNT NOT FOUND"] = "accountNotFound",
@@ -75,195 +95,239 @@ local serverErrors = {
     ["UNKNOWN ACTION"] = "unknownAction",
     ["SERVER ERROR"] = "serverError"
 }
-messages.invalidLogin = "Wrong PIN"
-messages.accountNotFound = "No account with this ID"
-messages.blocked = "Account is blocked"
-messages.invalidName = "Invalid nickname"
-messages.nameTaken = "Nickname is already registered"
-messages.recipientMissing = "Recipient not found or blocked"
-messages.selfTransfer = "You cannot transfer money to yourself"
-messages.unknownAction = "Unknown action"
-messages.serverError = "Server error"
 
 local function tr(key)
-    return messages[key] or key
+    return messages[key] or tostring(key)
 end
 
-local function utf8Chars(value)
-    local result = {}
-    for char in tostring(value):gmatch("[\0-\127\194-\244][\128-\191]*") do
-        result[#result + 1] = char
-    end
-    return result
+local function dimensions()
+    return term.getSize()
 end
 
-local function textWidth(value)
-    return #utf8Chars(value)
+local function setStyle(background, foreground)
+    term.setBackgroundColor(background or palette.background)
+    term.setTextColor(foreground or palette.text)
 end
 
-local function cutText(value, limit)
-    local chars = utf8Chars(value)
-    local result = {}
-    for i = 1, math.min(#chars, limit) do
-        result[#result + 1] = chars[i]
-    end
-    return table.concat(result)
-end
-
-local function color(bg, fg)
-    term.setBackgroundColor(bg)
-    term.setTextColor(fg)
-end
-
-local function clear()
-    color(colors.black, colors.white)
+local function clearScreen()
+    setStyle(palette.background, palette.text)
     term.clear()
     term.setCursorPos(1, 1)
+    term.setCursorBlink(false)
     buttons = {}
 end
 
-local function center(y, value, fg)
-    local width, height = term.getSize()
+local function clipped(value, limit)
+    value = tostring(value or "")
+    if #value <= limit then
+        return value
+    end
+    if limit <= 3 then
+        return value:sub(1, limit)
+    end
+    return value:sub(1, limit - 3) .. "..."
+end
+
+local function drawText(y, value, foreground, background)
+    local width, height = dimensions()
     if y < 1 or y > height then
         return
     end
-    local text = tostring(value)
-    if textWidth(text) > width then
-        text = cutText(text, width)
-    end
-    term.setBackgroundColor(colors.black)
-    term.setTextColor(fg or colors.white)
+
+    value = clipped(value, width)
+    local x = math.floor((width - #value) / 2) + 1
+
+    setStyle(background or palette.background, foreground or palette.text)
     term.setCursorPos(1, y)
     term.clearLine()
-    local x = math.floor((width - textWidth(text)) / 2) + 1
-    term.setCursorPos(math.max(1, x), y)
-    term.write(text)
-end
-
-local function separator(y)
-    local screenW, screenH = term.getSize()
-    if y < 1 or y > screenH then
-        return
-    end
-    term.setBackgroundColor(colors.black)
-    term.setTextColor(colors.orange)
-    term.setCursorPos(2, y)
-    term.write(string.rep("=", math.max(1, screenW - 2)))
-    color(colors.black, colors.white)
-end
-
-local function header(title, subtitle)
-    clear()
-    center(1, tr("bank"), colors.yellow)
-    separator(2)
-    center(4, title, colors.white)
-    if subtitle then
-        center(5, subtitle, colors.gray)
-    end
-    separator(6)
-end
-
-local function footer(message)
-    local _, height = term.getSize()
-    center(height, message, colors.gray)
-end
-
-local function addButton(id, label, y, key)
-    local screenW, screenH = term.getSize()
-    if y < 1 or y > screenH then
-        return
-    end
-    local width = math.min(screenW - 2, math.max(12, textWidth(label) + 6))
-    local safeLabel = cutText(label, math.max(1, width - 4))
-    local x = math.max(1, math.floor((screenW - width) / 2) + 1)
-    local buttonText = "[ " .. safeLabel .. " ]"
-    local textX = x + math.floor((width - textWidth(buttonText)) / 2)
-    color(colors.yellow, colors.black)
     term.setCursorPos(x, y)
-    term.write(string.rep(" ", width))
+    term.write(value)
+end
+
+local function drawLine(y, character, foreground)
+    local width, height = dimensions()
+    if y < 1 or y > height then
+        return
+    end
+
+    setStyle(palette.background, foreground or palette.gold)
+    term.setCursorPos(1, y)
+    term.write(string.rep(character or "-", width))
+end
+
+local function drawPanel(y, value, foreground)
+    local width, height = dimensions()
+    if y < 1 or y > height then
+        return
+    end
+
+    local text = clipped(value, math.max(1, width - 4))
+    local x = math.floor((width - #text) / 2) + 1
+
+    setStyle(palette.surface, foreground or palette.text)
+    term.setCursorPos(2, y)
+    term.write(string.rep(" ", math.max(0, width - 2)))
+    term.setCursorPos(x, y)
+    term.write(text)
+    setStyle(palette.background, palette.text)
+end
+
+local function drawButton(id, label, y, key, style)
+    local width, height = dimensions()
+    if y < 1 or y > height then
+        return
+    end
+
+    local buttonWidth = math.min(width - 2, math.max(14, #label + 4))
+    local x = math.floor((width - buttonWidth) / 2) + 1
+    local background = style == "primary" and palette.gold or palette.surface
+    local foreground = style == "primary" and colors.black or palette.text
+    local text = clipped(label, buttonWidth - 4)
+    local textX = x + math.floor((buttonWidth - #text) / 2)
+
+    setStyle(background, foreground)
+    term.setCursorPos(x, y)
+    term.write(string.rep(" ", buttonWidth))
     term.setCursorPos(textX, y)
-    term.write(buttonText)
+    term.write(text)
+
     buttons[#buttons + 1] = {
         id = id,
         key = key,
-        x1 = x,
-        x2 = x + width - 1,
-        y1 = y,
-        y2 = y
+        left = x,
+        right = x + buttonWidth - 1,
+        top = y,
+        bottom = y
     }
-    color(colors.black, colors.white)
+
+    setStyle(palette.background, palette.text)
+end
+
+local function drawHeader(title, subtitle)
+    clearScreen()
+    drawText(1, "B A N K", palette.goldLight)
+    drawLine(2, "=", palette.gold)
+    drawText(4, title, palette.text)
+
+    if subtitle then
+        drawText(5, subtitle, palette.muted)
+    end
+
+    drawLine(6, "-", palette.surface)
+end
+
+local function drawFooter(value)
+    local _, height = dimensions()
+    drawLine(height - 1, "-", palette.surface)
+    drawText(height, value, palette.muted)
+end
+
+local function wrapText(value, maxWidth)
+    local lines = {}
+    local line = ""
+
+    for word in tostring(value):gmatch("%S+") do
+        if line == "" then
+            line = word
+        elseif #line + #word + 1 <= maxWidth then
+            line = line .. " " .. word
+        else
+            lines[#lines + 1] = line
+            line = word
+        end
+    end
+
+    if line ~= "" then
+        lines[#lines + 1] = line
+    end
+
+    return lines
+end
+
+local function drawMessage(value, startY, foreground)
+    local width = dimensions()
+    local lines = wrapText(value, math.max(10, width - 4))
+
+    for index, line in ipairs(lines) do
+        drawText(startY + index - 1, line, foreground or palette.text)
+    end
 end
 
 local function waitChoice()
     while true do
-        local event, a, b, c = os.pullEvent()
+        local event, first, second, third = os.pullEvent()
+
         if event == "char" then
             for _, button in ipairs(buttons) do
-                if button.key == a then
+                if button.key and button.key == first then
                     return button.id
                 end
             end
-        elseif event == "mouse_click" then
-            local mouseButton, x, y = a, b, c
-            if mouseButton == 1 then
-                for _, button in ipairs(buttons) do
-                    if y >= button.y1 and y <= button.y2
-                        and x >= button.x1 and x <= button.x2 then
-                        return button.id
-                    end
+        elseif event == "mouse_click" and first == 1 then
+            local x, y = second, third
+            for _, button in ipairs(buttons) do
+                if x >= button.left and x <= button.right
+                    and y >= button.top and y <= button.bottom then
+                    return button.id
                 end
             end
         end
     end
 end
 
-local function pause(message)
-    header(tr("notice"))
-    center(9, message or tr("continueText"))
-    addButton("back", tr("continueText"), 13, "1")
-    footer("PRESS 1 TO CONTINUE")
+local function pause(value, isError)
+    drawHeader(isError and tr("error") or tr("notice"))
+    drawMessage(value or tr("continueText"), 9, isError and palette.danger or palette.text)
+    local _, height = dimensions()
+    drawButton("continue", tr("continueText"), height - 4, "1", "primary")
+    drawFooter("TAP TO CONTINUE  |  PRESS 1")
     waitChoice()
 end
 
-local function inputScreen(title, prompt, hidden)
-    header(title)
-    center(8, prompt)
-    center(10, tr("keyboard"), colors.gray)
-    separator(11)
-    term.setBackgroundColor(colors.black)
-    term.setTextColor(colors.yellow)
-    term.setCursorPos(3, 12)
+local function ask(title, prompt, hidden)
+    drawHeader(title, tr("keyboard"))
+    drawMessage(prompt, 9, palette.text)
+    drawPanel(12, "                                ", palette.goldLight)
+    term.setBackgroundColor(palette.surface)
+    term.setTextColor(palette.goldLight)
+    term.setCursorPos(4, 12)
     term.setCursorBlink(true)
+
     local value
     if hidden then
         value = read("*")
     else
         value = read()
     end
+
     term.setCursorBlink(false)
+    setStyle(palette.background, palette.text)
     return value
 end
 
-local function inputNumber(prompt)
-    return tonumber(inputScreen(tr("input"), prompt))
+local function askNumber(prompt)
+    local value = ask(tr("input"), prompt, false)
+    return tonumber(value)
 end
 
 local function request(data)
     rednet.send(SERVER_ID, data, PROTOCOL)
     local deadline = os.clock() + TIMEOUT
+
     while true do
         local remaining = deadline - os.clock()
         if remaining <= 0 then
-            return {ok = false, error = tr("noServer")}
+            return {ok = false, error = "NO SERVER"}
         end
+
         local sender, response = rednet.receive(PROTOCOL, remaining)
         if sender == SERVER_ID then
             if type(response) == "table" then
                 return response
             end
-            return {ok = false, error = tr("badResponse")}
+            return {ok = false, error = "INVALID RESPONSE"}
         elseif sender == nil then
-            return {ok = false, error = tr("noServer")}
+            return {ok = false, error = "NO SERVER"}
         end
     end
 end
@@ -271,13 +335,16 @@ end
 local function showError(response)
     local message = tostring(response.error or tr("unknownError"))
     local key = serverErrors[message]
+
     if key then
         message = tr(key)
+    elseif message == "NO SERVER" then
+        message = tr("noServer")
+    elseif message == "INVALID RESPONSE" then
+        message = tr("badResponse")
     end
-    header(tr("error"))
-    center(8, message, colors.red)
-    addButton("back", tr("back"), 12, "1")
-    waitChoice()
+
+    pause(message, true)
 end
 
 local function updateBalance()
@@ -286,39 +353,47 @@ local function updateBalance()
         id = accountId,
         pin = accountPin
     })
+
     if not response.ok then
         showError(response)
         return false
     end
+
     balance = response.balance
     accountName = response.name
     return true
 end
 
 local function login()
-    local id = inputNumber(tr("bankId"))
+    local id = askNumber(tr("bankId"))
+
     if not id or id < 1 or id % 1 ~= 0 then
-        pause(tr("invalidId"))
+        pause(tr("invalidId"), true)
         return false
     end
+
     local check = request({
         action = "CHECK_ID",
         id = id
     })
-    if not check.ok and check.error ~= "UNKNOWN ACTION" then
+
+    if not check.ok then
         showError(check)
         return false
     end
-    local pin = inputScreen(tr("login"), tr("pin"), true)
+
+    local pin = ask(tr("login"), tr("pin"), true)
     local response = request({
         action = "BALANCE",
         id = id,
         pin = pin
     })
+
     if not response.ok then
         showError(response)
         return false
     end
+
     accountId = id
     accountPin = pin
     accountName = response.name
@@ -327,81 +402,106 @@ local function login()
 end
 
 local function register()
-    local name = inputScreen(tr("register"), tr("nickname"))
-    local pin = inputScreen(tr("register"), tr("newPin"), true)
+    local name = ask(tr("register"), tr("nickname"), false)
+    name = name:match("^%s*(.-)%s*$")
+
+    local pin = ask(tr("register"), tr("newPin"), true)
     if not pin:match("^%d%d%d%d%d%d$") then
-        pause(tr("invalidPin"))
+        pause(tr("invalidPin"), true)
         return false
     end
-    local repeatedPin = inputScreen(tr("register"), tr("repeatPin"), true)
+
+    local repeatedPin = ask(tr("register"), tr("repeatPin"), true)
     if pin ~= repeatedPin then
-        pause(tr("pinsDiffer"))
+        pause(tr("pinsDiffer"), true)
         return false
     end
+
     local response = request({
         action = "REGISTER",
         name = name,
         pin = pin
     })
+
     if not response.ok then
         showError(response)
         return false
     end
+
     accountId = response.id
     accountPin = pin
     accountName = name
     balance = response.balance
-    header(tr("created"))
-    center(8, tr("yourId"), colors.gray)
-    center(10, accountId, colors.lightGray)
-    center(12, tr("credited") .. balance .. " BC", colors.lime)
-    addButton("continue", tr("continueText"), 16, "1")
+
+    drawHeader(tr("created"), accountName)
+    drawText(9, tr("yourId"), palette.muted)
+    drawPanel(11, tostring(accountId), palette.goldLight)
+    drawText(14, tr("credited"), palette.muted)
+    drawText(15, tostring(balance) .. " BC", palette.success)
+
+    local _, height = dimensions()
+    drawButton("continue", tr("continueText"), height - 4, "1", "primary")
+    drawFooter("SAVE YOUR BANK ID")
     waitChoice()
+
     return true
 end
 
-local function showBalance()
-    header(tr("myAccount"), accountName)
+local function showAccount()
+    drawHeader(tr("myAccount"), accountName)
+
     if updateBalance() then
-        center(8, tr("available"), colors.gray)
-        center(10, tostring(balance) .. " BC", colors.yellow)
-        separator(12)
-        center(14, tr("accountNumber"), colors.gray)
-        center(15, tostring(accountId), colors.white)
+        drawText(8, tr("available"), palette.muted)
+        drawText(10, tostring(balance) .. " BC", palette.goldLight)
+        drawLine(12, "-", palette.surface)
+        drawText(14, tr("accountId"), palette.muted)
+        drawText(16, tostring(accountId), palette.text)
     end
-    local _, height = term.getSize()
-    addButton("back", tr("back"), height - 2, "1")
-    footer("PRESS 1 TO RETURN")
+
+    local _, height = dimensions()
+    drawButton("back", tr("back"), height - 4, "1", "primary")
+    drawFooter("PRESS 1 TO RETURN")
     waitChoice()
 end
 
 local function transfer()
-    header(tr("transfer"))
-    center(8, tr("available") .. ": " .. balance .. " BC", colors.lightGray)
-    local target = inputNumber(tr("recipientId"))
+    drawHeader(tr("transfer"), accountName)
+    drawText(8, tr("available"), palette.muted)
+    drawText(9, tostring(balance) .. " BC", palette.goldLight)
+
+    local target = askNumber(tr("recipientId"))
     if not target or target < 1 or target % 1 ~= 0 then
-        pause(tr("invalidRecipient"))
+        pause(tr("invalidRecipient"), true)
         return
     end
-    local amount = inputNumber(tr("amount"))
+
+    local amount = askNumber(tr("amount"))
     if not amount or amount < 1 or amount % 1 ~= 0 then
-        pause(tr("invalidAmount"))
+        pause(tr("invalidAmount"), true)
         return
     end
+
     if amount > balance then
-        pause(tr("notEnough"))
+        pause(tr("notEnough"), true)
         return
     end
-    header(tr("confirmation"))
-    center(8, tr("recipient") .. target)
-    center(10, tr("amount") .. " " .. amount .. " BC", colors.lightGray)
-    center(12, tr("confirmTransfer"))
-    addButton("yes", tr("confirm"), 15, "1")
-    addButton("no", tr("cancel"), 17, "2")
+
+    drawHeader(tr("confirmation"))
+    drawText(8, tr("recipient"), palette.muted)
+    drawPanel(9, tostring(target), palette.text)
+    drawText(11, "PAYMENT AMOUNT", palette.muted)
+    drawText(13, tostring(amount) .. " BC", palette.goldLight)
+    drawText(15, tr("confirmTransfer"), palette.text)
+
+    drawButton("yes", tr("confirm"), 17, "1", "primary")
+    drawButton("no", tr("cancel"), 19, "2")
+    drawFooter("1 CONFIRM  |  2 CANCEL")
+
     if waitChoice() ~= "yes" then
         pause(tr("cancelled"))
         return
     end
+
     local response = request({
         action = "TRANSFER",
         id = accountId,
@@ -409,33 +509,51 @@ local function transfer()
         target = target,
         amount = amount
     })
+
     if not response.ok then
         showError(response)
         return
     end
-    updateBalance()
-    header(tr("completed"))
-    center(9, tr("sent"), colors.lime)
-    center(11, amount .. " BC", colors.lightGray)
-    center(13, tr("recipient") .. target)
-    addButton("back", tr("done"), 17, "1")
+
+    local balanceResponse = request({
+        action = "BALANCE",
+        id = accountId,
+        pin = accountPin
+    })
+
+    if balanceResponse.ok then
+        balance = balanceResponse.balance
+        accountName = balanceResponse.name
+    end
+
+    drawHeader(tr("completed"))
+    drawText(9, tr("sent"), palette.muted)
+    drawText(11, tostring(amount) .. " BC", palette.success)
+    drawText(14, tr("recipient"), palette.muted)
+    drawText(15, tostring(target), palette.text)
+
+    local _, height = dimensions()
+    drawButton("back", tr("done"), height - 4, "1", "primary")
+    drawFooter("PAYMENT CONFIRMED")
     waitChoice()
 end
 
 local function accountMenu()
     while accountId do
-        header(tr("cabinet"), accountName)
-        center(8, tr("available"), colors.gray)
-        center(9, tostring(balance) .. " BC", colors.yellow)
-        separator(10)
-        addButton("balance", tr("myAccount"), 12, "1")
-        addButton("transfer", tr("transfer"), 14, "2")
-        addButton("refresh", tr("refresh"), 16, "3")
-        addButton("logout", tr("logout"), 18, "0")
-        footer("1-3 SELECT  |  0 LOG OUT")
+        drawHeader(tr("account"), accountName)
+        drawText(8, tr("available"), palette.muted)
+        drawText(10, tostring(balance) .. " BC", palette.goldLight)
+        drawLine(12, "-", palette.surface)
+
+        drawButton("balance", tr("myAccount"), 13, "1", "primary")
+        drawButton("transfer", tr("transfer"), 16, "2")
+        drawButton("refresh", tr("refresh"), 18, "3")
+        drawFooter("1 ACCOUNT  2 SEND  3 REFRESH")
+
         local choice = waitChoice()
+
         if choice == "balance" then
-            showBalance()
+            showAccount()
         elseif choice == "transfer" then
             transfer()
         elseif choice == "refresh" then
@@ -450,6 +568,7 @@ local function accountMenu()
         end
     end
 end
+
 local modemFound = false
 for _, name in ipairs(peripheral.getNames()) do
     if peripheral.getType(name) == "modem" then
@@ -457,19 +576,25 @@ for _, name in ipairs(peripheral.getNames()) do
         modemFound = true
     end
 end
+
 if not modemFound then
-    header(tr("connectionError"))
-    center(9, tr("noModem"), colors.red)
+    drawHeader(tr("connectionError"))
+    drawMessage(tr("noModem"), 10, palette.danger)
+    drawFooter("BANK CLIENT")
     return
 end
 
 while true do
-    header(tr("welcome"))
-    center(8, tr("subtitle"), colors.gray)
-    addButton("login", tr("login"), 12, "1")
-    addButton("register", tr("register"), 15, "2")
-    footer("1 LOG IN  |  2 REGISTER")
+    drawHeader(tr("welcome"), tr("subtitle"))
+    drawText(8, "YOUR MONEY,", palette.muted)
+    drawText(9, "UNDER CONTROL.", palette.goldLight)
+
+    drawButton("login", tr("login"), 12, "1", "primary")
+    drawButton("register", tr("register"), 16, "2")
+    drawFooter("1 SIGN IN  |  2 OPEN ACCOUNT")
+
     local choice = waitChoice()
+
     if choice == "login" then
         if login() then
             accountMenu()
