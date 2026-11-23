@@ -57,6 +57,15 @@ local function reply(sender, data)
     rednet.send(sender, data, PROTOCOL)
 end
 
+local ADMIN_CONFIG = DATA .. "/admin_settings.db"
+local adminConfig = load(ADMIN_CONFIG, {password = nil})
+local adminSessions = {}
+
+local function adminAuthorized(sender, request)
+    return type(request.token) == "string"
+        and adminSessions[sender] == request.token
+end
+
 local function handle(sender, request)
     if type(request) ~= "table" then
         return {ok = false, error = "INVALID REQUEST"}
@@ -266,6 +275,122 @@ local function handle(sender, request)
         save(ACCOUNTS, accounts)
         log("TRANSFER", senderAccount.id, receiverAccount.id, amount)
         return {ok = true, message = "TRANSFER COMPLETE"}
+    end
+    if request.action == "ADMIN_LOGIN" then
+        if type(adminConfig.password) ~= "string" or adminConfig.password == "" then
+            return {ok = false, error = "ADMIN PASSWORD NOT CONFIGURED"}
+        end
+        if type(request.password) ~= "string" or request.password ~= adminConfig.password then
+            return {ok = false, error = "INCORRECT PASSWORD"}
+        end
+        local token = tostring(os.epoch("utc")) .. "-" .. tostring(math.random(100000, 999999))
+        adminSessions[sender] = token
+        return {ok = true, token = token}
+    end
+    if type(request.action) == "string" and request.action:match("^ADMIN_") then
+        if not adminAuthorized(sender, request) then
+            return {ok = false, error = "ADMIN LOGIN REQUIRED"}
+        end
+        if request.action == "ADMIN_STATS" then
+            local count, total, blocked = 0, 0, 0
+            for _, account in pairs(accounts.accounts) do
+                count = count + 1
+                total = total + (tonumber(account.balance) or 0)
+                if account.blocked then blocked = blocked + 1 end
+            end
+            return {ok = true, accounts = count, total = total, blocked = blocked}
+        end
+        if request.action == "ADMIN_ACCOUNT" then
+            local account = findAccount(request.id)
+            if not account then return {ok = false, error = "ACCOUNT NOT FOUND"} end
+            return {ok = true, id = account.id, name = account.name, balance = account.balance, blocked = account.blocked, created = account.created}
+        end
+        if request.action == "ADMIN_ADJUST" then
+            local account = findAccount(request.id)
+            local amount = tonumber(request.amount)
+            if not account then return {ok = false, error = "ACCOUNT NOT FOUND"} end
+            if not amount or amount < 1 or amount % 1 ~= 0 then return {ok = false, error = "INVALID AMOUNT"} end
+            if request.mode == "REMOVE" and account.balance < amount then return {ok = false, error = "INSUFFICIENT BALANCE"} end
+            if request.mode == "ADD" then account.balance = account.balance + amount
+            elseif request.mode == "REMOVE" then account.balance = account.balance - amount
+            else return {ok = false, error = "INVALID OPERATION"} end
+            save(ACCOUNTS, accounts)
+            log("ADMIN_" .. request.mode, account.id, nil, amount)
+            return {ok = true, balance = account.balance}
+        end
+        if request.action == "ADMIN_TOGGLE_BLOCK" then
+            local account = findAccount(request.id)
+            if not account then return {ok = false, error = "ACCOUNT NOT FOUND"} end
+            account.blocked = not account.blocked
+            save(ACCOUNTS, accounts)
+            log("ADMIN_BLOCK", account.id, nil, 0)
+            return {ok = true, blocked = account.blocked}
+        end
+        if request.action == "ADMIN_HISTORY" then
+            local result = {}
+            for index = #history, 1, -1 do
+                local entry = history[index]
+                if tostring(entry.from) == tostring(request.id) or tostring(entry.to) == tostring(request.id)
+                    or tostring(entry.id) == tostring(request.id) then
+                    result[#result + 1] = entry
+                    if #result >= 40 then break end
+                end
+            end
+            return {ok = true, transactions = result}
+        end
+        if request.action == "ADMIN_CREATE_ACCOUNT" then
+            local nickname = request.nickname
+            if type(nickname) ~= "string" then return {ok = false, error = "INVALID NICKNAME"} end
+            nickname = nickname:match("^%s*(.-)%s*$")
+            if #nickname < 3 or #nickname > 20 then return {ok = false, error = "NICKNAME MUST BE 3-20 CHARACTERS"} end
+            for _, account in pairs(accounts.accounts) do
+                if type(account.name) == "string" and account.name:lower() == nickname:lower() then
+                    return {ok = false, error = "NICKNAME ALREADY REGISTERED"}
+                end
+            end
+            for _, item in pairs(registrations.codes) do
+                if type(item.nickname) == "string" and item.nickname:lower() == nickname:lower() and not item.used and not item.revoked then
+                    return {ok = false, error = "ACTIVE CODE ALREADY EXISTS"}
+                end
+            end
+            local alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+            local code
+            repeat
+                local parts = {}
+                for i = 1, 8 do
+                    local index = math.random(#alphabet)
+                    parts[i] = alphabet:sub(index, index)
+                end
+                local raw = table.concat(parts)
+                code = raw:sub(1, 4) .. "-" .. raw:sub(5, 8)
+            until not registrations.codes[code]
+            local id = accounts.nextId or 1
+            accounts.nextId = id + 1
+            registrations.codes[code] = {id = id, nickname = nickname, used = false, revoked = false, createdAt = os.epoch("utc")}
+            save(ACCOUNTS, accounts)
+            save(REGISTRATIONS, registrations)
+            return {ok = true, id = id, nickname = nickname, code = code}
+        end
+        if request.action == "ADMIN_CODES" then
+            local result = {}
+            for code, item in pairs(registrations.codes) do
+                result[#result + 1] = {code = code, id = item.id, nickname = item.nickname, used = item.used, revoked = item.revoked}
+            end
+            table.sort(result, function(a, b) return tostring(a.id) < tostring(b.id) end)
+            return {ok = true, codes = result}
+        end
+        if request.action == "ADMIN_REVOKE_CODE" then
+            local code = type(request.code) == "string" and request.code:upper() or ""
+            local item = registrations.codes[code]
+            if not item then return {ok = false, error = "CODE NOT FOUND"} end
+            if item.used then return {ok = false, error = "CODE ALREADY USED"} end
+            if item.revoked then return {ok = false, error = "CODE ALREADY REVOKED"} end
+            item.revoked = true
+            item.revokedAt = os.epoch("utc")
+            save(REGISTRATIONS, registrations)
+            return {ok = true}
+        end
+        return {ok = false, error = "UNKNOWN ADMIN ACTION"}
     end
     return {ok = false, error = "UNKNOWN ACTION"}
 end
