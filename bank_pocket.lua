@@ -350,4 +350,5 @@ while true do
         if register() then
             accountMenu()
         end
+    end
 end
