@@ -336,7 +336,6 @@ while true do
 
     print("1. Login")
     print("2. Create account")
-    print("0. Exit")
     print("")
 
     write("Select: ")
@@ -351,10 +350,4 @@ while true do
         if register() then
             accountMenu()
         end
-
-    elseif choice == "0" then
-        clear()
-        print("Thank you for using Bank.")
-        break
-    end
 end
