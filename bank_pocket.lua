@@ -1,31 +1,215 @@
-
--- BANK POCKET CLIENT
--- Luxury Edition
--- CC:Tweaked 1.21.1
--- Central server: 203
-
 local SERVER_ID = 203
 local PROTOCOL = "bank"
 local TIMEOUT = 8
+local LANGUAGE_FILE = "bank_language"
+
+local W, H = term.getSize()
+local buttons = {}
 
 local accountId
 local accountPin
 local accountName
 local balance = 0
 
-local W, H = term.getSize()
-local buttons = {}
+local lang = "ru"
 
-local C = {
-    bg = colors.black,
-    panel = colors.gray,
-    button = colors.lightGray,
-    text = colors.white,
-    muted = colors.gray,
-    accent = colors.lightGray,
-    success = colors.lime,
-    error = colors.red
+local text = {
+    ru = {
+        bank = "БАНК",
+        welcome = "ДОБРО ПОЖАЛОВАТЬ",
+        subtitle = "ЭЛЕКТРОННЫЙ БАНК",
+        login = "ВОЙТИ В БАНК",
+        register = "ОТКРЫТЬ СЧЁТ",
+        language = "ЯЗЫК: РУССКИЙ",
+        cabinet = "ЛИЧНЫЙ КАБИНЕТ",
+        myAccount = "МОЙ СЧЁТ",
+        transfer = "ПЕРЕВОД",
+        refresh = "ОБНОВИТЬ БАЛАНС",
+        logout = "ВЫЙТИ",
+        balance = "БАЛАНС",
+        available = "ДОСТУПНЫЙ БАЛАНС",
+        accountNumber = "СЧЁТ №",
+        input = "ВВОД ДАННЫХ",
+        keyboard = "Введите значение с клавиатуры",
+        continueText = "ПРОДОЛЖИТЬ",
+        back = "НАЗАД",
+        notice = "УВЕДОМЛЕНИЕ",
+        error = "ОШИБКА",
+        bankId = "Банковский ID:",
+        pin = "Введите PIN:",
+        nickname = "Ваш игровой ник:",
+        newPin = "Придумайте 6 цифр:",
+        repeatPin = "Повторите PIN:",
+        invalidId = "Некорректный ID",
+        invalidPin = "PIN должен содержать 6 цифр",
+        pinsDiffer = "PIN-коды не совпадают",
+        created = "СЧЁТ СОЗДАН",
+        yourId = "ВАШ БАНКОВСКИЙ ID",
+        credited = "Начислено: ",
+        recipientId = "ID получателя:",
+        amount = "Сумма перевода:",
+        invalidRecipient = "Некорректный ID получателя",
+        invalidAmount = "Некорректная сумма",
+        notEnough = "Недостаточно средств",
+        confirmation = "ПОДТВЕРЖДЕНИЕ",
+        confirmTransfer = "Подтвердить перевод?",
+        confirm = "ПОДТВЕРДИТЬ",
+        cancel = "ОТМЕНА",
+        cancelled = "Перевод отменён",
+        completed = "ПЕРЕВОД ВЫПОЛНЕН",
+        sent = "Успешно отправлено",
+        recipient = "Получатель: ",
+        done = "ГОТОВО",
+        balanceUpdated = "Баланс обновлён",
+        noModem = "Модем не найден",
+        connectionError = "ОШИБКА СВЯЗИ",
+        noServer = "Нет ответа от сервера",
+        badResponse = "Некорректный ответ сервера",
+        unknownError = "Неизвестная ошибка",
+        secure = "BANK  |  SECURE SYSTEM",
+        yes = "ДА",
+        no = "НЕТ"
+    },
+    en = {
+        bank = "BANK",
+        welcome = "WELCOME",
+        subtitle = "ELECTRONIC BANK",
+        login = "LOG IN",
+        register = "OPEN ACCOUNT",
+        language = "LANGUAGE: ENGLISH",
+        cabinet = "ACCOUNT",
+        myAccount = "MY ACCOUNT",
+        transfer = "TRANSFER",
+        refresh = "REFRESH BALANCE",
+        logout = "LOG OUT",
+        balance = "BALANCE",
+        available = "AVAILABLE BALANCE",
+        accountNumber = "ACCOUNT #",
+        input = "INPUT",
+        keyboard = "Enter a value using keyboard",
+        continueText = "CONTINUE",
+        back = "BACK",
+        notice = "NOTICE",
+        error = "ERROR",
+        bankId = "Bank ID:",
+        pin = "Enter PIN:",
+        nickname = "Minecraft nickname:",
+        newPin = "Create a 6-digit PIN:",
+        repeatPin = "Repeat PIN:",
+        invalidId = "Invalid ID",
+        invalidPin = "PIN must contain 6 digits",
+        pinsDiffer = "PINs do not match",
+        created = "ACCOUNT CREATED",
+        yourId = "YOUR BANK ID",
+        credited = "Credited: ",
+        recipientId = "Recipient ID:",
+        amount = "Transfer amount:",
+        invalidRecipient = "Invalid recipient ID",
+        invalidAmount = "Invalid amount",
+        notEnough = "Not enough funds",
+        confirmation = "CONFIRMATION",
+        confirmTransfer = "Confirm this transfer?",
+        confirm = "CONFIRM",
+        cancel = "CANCEL",
+        cancelled = "Transfer cancelled",
+        completed = "TRANSFER COMPLETE",
+        sent = "Successfully sent",
+        recipient = "Recipient: ",
+        done = "DONE",
+        balanceUpdated = "Balance updated",
+        noModem = "No modem found",
+        connectionError = "CONNECTION ERROR",
+        noServer = "No response from server",
+        badResponse = "Invalid server response",
+        unknownError = "Unknown error",
+        secure = "BANK  |  SECURE SYSTEM",
+        yes = "YES",
+        no = "NO"
+    }
 }
+
+local serverErrors = {
+    ["INVALID ID OR PIN"] = "invalidLogin",
+    ["ACCOUNT BLOCKED"] = "blocked",
+    ["INVALID NAME"] = "invalidName",
+    ["PIN MUST BE 6 DIGITS"] = "invalidPin",
+    ["NAME ALREADY REGISTERED"] = "nameTaken",
+    ["RECIPIENT NOT FOUND OR BLOCKED"] = "recipientMissing",
+    ["INVALID AMOUNT"] = "invalidAmount",
+    ["CANNOT TRANSFER TO YOURSELF"] = "selfTransfer",
+    ["NOT ENOUGH MONEY"] = "notEnough",
+    ["UNKNOWN ACTION"] = "unknownAction",
+    ["SERVER ERROR"] = "serverError"
+}
+
+text.ru.invalidLogin = "Неверный ID или PIN"
+text.ru.blocked = "Счёт заблокирован"
+text.ru.invalidName = "Некорректный ник"
+text.ru.nameTaken = "Этот ник уже зарегистрирован"
+text.ru.recipientMissing = "Получатель не найден или заблокирован"
+text.ru.selfTransfer = "Нельзя перевести деньги самому себе"
+text.ru.unknownAction = "Неизвестная операция"
+text.ru.serverError = "Ошибка сервера"
+
+text.en.invalidLogin = "Wrong ID or PIN"
+text.en.blocked = "Account is blocked"
+text.en.invalidName = "Invalid nickname"
+text.en.nameTaken = "Nickname is already registered"
+text.en.recipientMissing = "Recipient not found or blocked"
+text.en.selfTransfer = "You cannot transfer money to yourself"
+text.en.unknownAction = "Unknown action"
+text.en.serverError = "Server error"
+
+local function tr(key)
+    return text[lang][key] or key
+end
+
+local function utf8Chars(value)
+    local result = {}
+    for char in tostring(value):gmatch("[\0-\127\194-\244][\128-\191]*") do
+        result[#result + 1] = char
+    end
+    return result
+end
+
+local function textWidth(value)
+    return #utf8Chars(value)
+end
+
+local function cutText(value, limit)
+    local chars = utf8Chars(value)
+    local result = {}
+    for i = 1, math.min(#chars, limit) do
+        result[#result + 1] = chars[i]
+    end
+    return table.concat(result)
+end
+
+local function loadLanguage()
+    if not fs.exists(LANGUAGE_FILE) then
+        return
+    end
+
+    local file = fs.open(LANGUAGE_FILE, "r")
+    if not file then
+        return
+    end
+
+    local saved = file.readAll()
+    file.close()
+
+    if saved == "ru" or saved == "en" then
+        lang = saved
+    end
+end
+
+local function saveLanguage()
+    local file = fs.open(LANGUAGE_FILE, "w")
+    if file then
+        file.write(lang)
+        file.close()
+    end
+end
 
 local function color(bg, fg)
     term.setBackgroundColor(bg)
@@ -33,74 +217,80 @@ local function color(bg, fg)
 end
 
 local function clear()
-    color(C.bg, C.text)
+    color(colors.black, colors.white)
     term.clear()
     term.setCursorPos(1, 1)
     buttons = {}
 end
 
-local function center(y, text, fg)
-    text = tostring(text)
-    local x = math.max(1, math.floor((W - #text) / 2) + 1)
+local function center(y, value, fg)
+    local valueText = tostring(value)
+    local width = textWidth(valueText)
+    local x = math.max(1, math.floor((W - width) / 2) + 1)
+
     term.setCursorPos(x, y)
-    term.setTextColor(fg or C.text)
-    write(text:sub(1, W))
+    term.setTextColor(fg or colors.white)
+    write(cutText(valueText, W))
 end
 
-local function line(y)
-    center(y, string.rep("-", math.min(W - 2, 28)), C.muted)
+local function separator(y)
+    center(y, string.rep("-", math.min(W - 2, 28)), colors.gray)
 end
 
 local function header(title, subtitle)
     clear()
-    center(1, "BANK", C.accent)
-    line(2)
-    center(3, title or "БАНКОВСКАЯ СИСТЕМА", C.text)
+    center(1, tr("bank"), colors.lightGray)
+    separator(2)
+    center(3, title, colors.white)
+
     if subtitle then
-        center(4, subtitle, C.muted)
+        center(4, subtitle, colors.gray)
     end
-    line(5)
+
+    separator(5)
 end
 
 local function addButton(id, label, y, key)
-    local width = math.min(W - 4, math.max(12, #label + 4))
-    local x = math.floor((W - width) / 2) + 1
+    if y < 1 or y > H then
+        return
+    end
 
-    color(C.button, C.bg)
+    local width = math.min(W - 2, math.max(12, textWidth(label) + 4))
+    local x = math.floor((W - width) / 2) + 1
+    local buttonText = "[" .. label .. "]"
+    local textX = x + math.floor((width - textWidth(buttonText)) / 2)
+
+    color(colors.lightGray, colors.black)
     term.setCursorPos(x, y)
     write(string.rep(" ", width))
-
-    local text = "[" .. label .. "]"
-    local tx = x + math.floor((width - #text) / 2)
-    term.setCursorPos(tx, y)
-    write(text)
+    term.setCursorPos(textX, y)
+    write(buttonText)
 
     buttons[#buttons + 1] = {
         id = id,
+        key = key,
         x1 = x,
         x2 = x + width - 1,
-        y = y,
-        key = key
+        y = y
     }
+
+    color(colors.black, colors.white)
 end
 
 local function waitChoice()
     while true do
         local event, a, b, c = os.pullEvent()
 
-        if event == "mouse_click" then
-            local x, y = b, c
-
-            for _, btn in ipairs(buttons) do
-                if y == btn.y and x >= btn.x1 and x <= btn.x2 then
-                    return btn.id
+        if event == "char" then
+            for _, button in ipairs(buttons) do
+                if button.key == a then
+                    return button.id
                 end
             end
-
-        elseif event == "char" then
-            for _, btn in ipairs(buttons) do
-                if btn.key == a then
-                    return btn.id
+        elseif event == "mouse_click" then
+            for _, button in ipairs(buttons) do
+                if c == button.y and b >= button.x1 and b <= button.x2 then
+                    return button.id
                 end
             end
         end
@@ -108,18 +298,18 @@ local function waitChoice()
 end
 
 local function pause(message)
-    header("УВЕДОМЛЕНИЕ")
-    center(8, message or "Нажмите кнопку", C.text)
-    addButton("back", "ПРОДОЛЖИТЬ", 12, "1")
+    header(tr("notice"))
+    center(8, message or tr("continueText"))
+    addButton("back", tr("continueText"), 12, "1")
     waitChoice()
 end
 
 local function inputScreen(title, prompt, hidden)
     header(title)
-    center(8, prompt, C.text)
-    center(10, "Введите значение с клавиатуры", C.muted)
+    center(8, prompt)
+    center(10, tr("keyboard"), colors.gray)
     term.setCursorPos(3, 12)
-    term.setTextColor(C.accent)
+    term.setTextColor(colors.lightGray)
 
     if hidden then
         return read("*")
@@ -129,8 +319,7 @@ local function inputScreen(title, prompt, hidden)
 end
 
 local function inputNumber(prompt)
-    local value = inputScreen("ВВОД ДАННЫХ", prompt)
-    return tonumber(value)
+    return tonumber(inputScreen(tr("input"), prompt))
 end
 
 local function request(data)
@@ -140,41 +329,34 @@ local function request(data)
 
     while true do
         local remaining = deadline - os.clock()
-
         if remaining <= 0 then
-            return {
-                ok = false,
-                error = "Нет ответа от сервера"
-            }
+            return {ok = false, error = tr("noServer")}
         end
 
-        local sender, response =
-            rednet.receive(PROTOCOL, remaining)
+        local sender, response = rednet.receive(PROTOCOL, remaining)
 
         if sender == SERVER_ID then
             if type(response) == "table" then
                 return response
             end
-
-            return {
-                ok = false,
-                error = "Некорректный ответ сервера"
-            }
-        end
-
-        if sender == nil then
-            return {
-                ok = false,
-                error = "Нет ответа от сервера"
-            }
+            return {ok = false, error = tr("badResponse")}
+        elseif sender == nil then
+            return {ok = false, error = tr("noServer")}
         end
     end
 end
 
 local function showError(response)
-    header("ОШИБКА")
-    center(8, tostring(response.error or "Неизвестная ошибка"), C.error)
-    addButton("back", "НАЗАД", 12, "1")
+    local message = tostring(response.error or tr("unknownError"))
+    local key = serverErrors[message]
+
+    if key then
+        message = tr(key)
+    end
+
+    header(tr("error"))
+    center(8, message, colors.red)
+    addButton("back", tr("back"), 12, "1")
     waitChoice()
 end
 
@@ -196,15 +378,14 @@ local function updateBalance()
 end
 
 local function login()
-    local id = inputNumber("Банковский ID:")
+    local id = inputNumber(tr("bankId"))
 
     if not id or id < 1 or id % 1 ~= 0 then
-        pause("Некорректный ID")
+        pause(tr("invalidId"))
         return false
     end
 
-    local pin = inputScreen("АВТОРИЗАЦИЯ", "Введите PIN:", true)
-
+    local pin = inputScreen(tr("login"), tr("pin"), true)
     local response = request({
         action = "BALANCE",
         id = id,
@@ -220,24 +401,21 @@ local function login()
     accountPin = pin
     accountName = response.name
     balance = response.balance
-
     return true
 end
 
 local function register()
-    local name = inputScreen("РЕГИСТРАЦИЯ", "Ваш игровой ник:")
-
-    local pin = inputScreen("СОЗДАНИЕ PIN", "Придумайте 6 цифр:", true)
+    local name = inputScreen(tr("register"), tr("nickname"))
+    local pin = inputScreen(tr("register"), tr("newPin"), true)
 
     if not pin:match("^%d%d%d%d%d%d$") then
-        pause("PIN должен содержать 6 цифр")
+        pause(tr("invalidPin"))
         return false
     end
 
-    local repeatPin = inputScreen("ПОДТВЕРЖДЕНИЕ", "Повторите PIN:", true)
-
-    if pin ~= repeatPin then
-        pause("PIN-коды не совпадают")
+    local repeatedPin = inputScreen(tr("register"), tr("repeatPin"), true)
+    if pin ~= repeatedPin then
+        pause(tr("pinsDiffer"))
         return false
     end
 
@@ -257,62 +435,60 @@ local function register()
     accountName = name
     balance = response.balance
 
-    header("СЧЁТ СОЗДАН")
-    center(8, "ВАШ БАНКОВСКИЙ ID", C.muted)
-    center(10, accountId, C.accent)
-    center(12, "Начислено: " .. balance .. " BC", C.success)
-    addButton("continue", "ПРОДОЛЖИТЬ", 16, "1")
+    header(tr("created"))
+    center(8, tr("yourId"), colors.gray)
+    center(10, accountId, colors.lightGray)
+    center(12, tr("credited") .. balance .. " BC", colors.lime)
+    addButton("continue", tr("continueText"), 16, "1")
     waitChoice()
 
     return true
 end
 
 local function showBalance()
-    header("МОЙ СЧЁТ", accountName)
+    header(tr("myAccount"), accountName)
 
     if updateBalance() then
-        center(8, "ДОСТУПНЫЙ БАЛАНС", C.muted)
-        center(10, tostring(balance) .. " BC", C.accent)
-        center(13, "Счёт №" .. tostring(accountId), C.text)
+        center(8, tr("available"), colors.gray)
+        center(10, tostring(balance) .. " BC", colors.lightGray)
+        center(13, tr("accountNumber") .. tostring(accountId))
     end
 
-    addButton("back", "НАЗАД", H - 2, "1")
+    addButton("back", tr("back"), H - 2, "1")
     waitChoice()
 end
 
 local function transfer()
-    header("ПЕРЕВОД СРЕДСТВ")
-    center(8, "Доступно: " .. balance .. " BC", C.accent)
+    header(tr("transfer"))
+    center(8, tr("available") .. ": " .. balance .. " BC", colors.lightGray)
 
-    local target = inputNumber("ID получателя:")
-
+    local target = inputNumber(tr("recipientId"))
     if not target or target < 1 or target % 1 ~= 0 then
-        pause("Некорректный ID получателя")
+        pause(tr("invalidRecipient"))
         return
     end
 
-    local amount = inputNumber("Сумма перевода:")
-
+    local amount = inputNumber(tr("amount"))
     if not amount or amount < 1 or amount % 1 ~= 0 then
-        pause("Некорректная сумма")
+        pause(tr("invalidAmount"))
         return
     end
 
     if amount > balance then
-        pause("Недостаточно средств")
+        pause(tr("notEnough"))
         return
     end
 
-    header("ПОДТВЕРЖДЕНИЕ")
-    center(8, "Получатель: " .. target, C.text)
-    center(10, "Сумма: " .. amount .. " BC", C.accent)
-    center(12, "Подтвердить перевод?", C.text)
+    header(tr("confirmation"))
+    center(8, tr("recipient") .. target)
+    center(10, tr("amount") .. " " .. amount .. " BC", colors.lightGray)
+    center(12, tr("confirmTransfer"))
 
-    addButton("yes", "ПОДТВЕРДИТЬ", 15, "1")
-    addButton("no", "ОТМЕНА", 17, "2")
+    addButton("yes", tr("confirm"), 15, "1")
+    addButton("no", tr("cancel"), 17, "2")
 
     if waitChoice() ~= "yes" then
-        pause("Перевод отменён")
+        pause(tr("cancelled"))
         return
     end
 
@@ -324,45 +500,49 @@ local function transfer()
         amount = amount
     })
 
-    if response.ok then
-        updateBalance()
-        header("ПЕРЕВОД ВЫПОЛНЕН")
-        center(9, "Успешно отправлено", C.success)
-        center(11, amount .. " BC", C.accent)
-        center(13, "Получатель: " .. target, C.text)
-        addButton("back", "ГОТОВО", 17, "1")
-        waitChoice()
-    else
+    if not response.ok then
         showError(response)
+        return
     end
+
+    updateBalance()
+    header(tr("completed"))
+    center(9, tr("sent"), colors.lime)
+    center(11, amount .. " BC", colors.lightGray)
+    center(13, tr("recipient") .. target)
+    addButton("back", tr("done"), 17, "1")
+    waitChoice()
+end
+
+local function toggleLanguage()
+    lang = lang == "ru" and "en" or "ru"
+    saveLanguage()
 end
 
 local function accountMenu()
     while accountId do
-        header("ЛИЧНЫЙ КАБИНЕТ", accountName)
+        header(tr("cabinet"), accountName)
+        center(7, tr("balance"), colors.gray)
+        center(8, tostring(balance) .. " BC", colors.lightGray)
 
-        center(7, "БАЛАНС", C.muted)
-        center(8, tostring(balance) .. " BC", C.accent)
-        center(10, "ID: " .. tostring(accountId), C.text)
-
-        addButton("balance", "МОЙ СЧЁТ", 12, "1")
-        addButton("transfer", "ПЕРЕВОД", 14, "2")
-        addButton("refresh", "ОБНОВИТЬ БАЛАНС", 16, "3")
-        addButton("logout", "ВЫЙТИ", 18, "0")
+        addButton("balance", tr("myAccount"), 10, "1")
+        addButton("transfer", tr("transfer"), 12, "2")
+        addButton("refresh", tr("refresh"), 14, "3")
+        addButton("language", tr("language"), 16, "l")
+        addButton("logout", tr("logout"), 18, "0")
 
         local choice = waitChoice()
 
         if choice == "balance" then
             showBalance()
-
         elseif choice == "transfer" then
             transfer()
-
         elseif choice == "refresh" then
             if updateBalance() then
-                pause("Баланс обновлён")
+                pause(tr("balanceUpdated"))
             end
-
+        elseif choice == "language" then
+            toggleLanguage()
         elseif choice == "logout" then
             accountId = nil
             accountPin = nil
@@ -372,12 +552,9 @@ local function accountMenu()
     end
 end
 
--- INITIALIZATION
-
-clear()
+loadLanguage()
 
 local modemFound = false
-
 for _, name in ipairs(peripheral.getNames()) do
     if peripheral.getType(name) == "modem" then
         rednet.open(name)
@@ -386,19 +563,20 @@ for _, name in ipairs(peripheral.getNames()) do
 end
 
 if not modemFound then
-    header("ОШИБКА СВЯЗИ")
-    center(9, "Модем не найден", C.error)
+    header(tr("connectionError"))
+    center(9, tr("noModem"), colors.red)
     return
 end
 
 while true do
-    header("ДОБРО ПОЖАЛОВАТЬ")
-    center(8, "ЭЛЕКТРОННЫЙ БАНК", C.muted)
+    header(tr("welcome"))
+    center(8, tr("subtitle"), colors.gray)
 
-    addButton("login", "ВОЙТИ В БАНК", 12, "1")
-    addButton("register", "ОТКРЫТЬ СЧЁТ", 14, "2")
+    addButton("login", tr("login"), 11, "1")
+    addButton("register", tr("register"), 13, "2")
+    addButton("language", tr("language"), 15, "l")
 
-    center(H, "BANK  |  SECURE SYSTEM", C.muted)
+    center(H, tr("secure"), colors.gray)
 
     local choice = waitChoice()
 
@@ -406,10 +584,11 @@ while true do
         if login() then
             accountMenu()
         end
-
     elseif choice == "register" then
         if register() then
             accountMenu()
         end
+    elseif choice == "language" then
+        toggleLanguage()
     end
 end
