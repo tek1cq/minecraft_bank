@@ -28,6 +28,14 @@ local messages = {
     register = "REGISTER",
     account = "YOUR ACCOUNT",
     myAccount = "ACCOUNT DETAILS",
+    history = "TRANSACTION HISTORY",
+    noHistory = "NO TRANSACTIONS FOUND",
+    accountOpened = "ACCOUNT OPENED",
+    sentTo = "SENT TO",
+    receivedFrom = "RECEIVED FROM",
+    backPage = "BACK",
+    previousPage = "PREV",
+    nextPage = "NEXT",
     transfer = "SEND MONEY",
     refresh = "REFRESH BALANCE",
     logout = "SIGN OUT",
@@ -183,6 +191,35 @@ local function drawButton(id, label, y, key, style)
     local background = style == "primary" and palette.gold or palette.surface
     local foreground = style == "primary" and colors.black or palette.text
     local text = clipped(label, buttonWidth - 4)
+    local textX = x + math.floor((buttonWidth - #text) / 2)
+
+    setStyle(background, foreground)
+    term.setCursorPos(x, y)
+    term.write(string.rep(" ", buttonWidth))
+    term.setCursorPos(textX, y)
+    term.write(text)
+
+    buttons[#buttons + 1] = {
+        id = id,
+        key = key,
+        left = x,
+        right = x + buttonWidth - 1,
+        top = y,
+        bottom = y
+    }
+
+    setStyle(palette.background, palette.text)
+end
+
+local function drawSmallButton(id, label, x, y, buttonWidth, key, style)
+    local width, height = dimensions()
+    if y < 1 or y > height then
+        return
+    end
+
+    local background = style == "primary" and palette.gold or palette.surface
+    local foreground = style == "primary" and colors.black or palette.text
+    local text = clipped(label, buttonWidth - 2)
     local textX = x + math.floor((buttonWidth - #text) / 2)
 
     setStyle(background, foreground)
@@ -549,18 +586,94 @@ local function transfer()
     waitChoice()
 end
 
+local function showHistory()
+    local response = request({
+        action = "HISTORY",
+        id = accountId,
+        pin = accountPin
+    })
+
+    if not response.ok then
+        showError(response)
+        return
+    end
+
+    local entries = response.transactions or {}
+    local page = 1
+    local pageSize = 2
+    local pageCount = math.max(1, math.ceil(#entries / pageSize))
+
+    while true do
+        drawHeader(tr("history"), accountName)
+
+        if #entries == 0 then
+            drawMessage(tr("noHistory"), 10, palette.muted)
+        else
+            for slot = 1, pageSize do
+                local index = (page - 1) * pageSize + slot
+                local entry = entries[index]
+                local y = 8 + (slot - 1) * 4
+
+                if entry then
+                    local dateText = os.date("%d.%m.%Y %H:%M", math.floor((entry.time or 0) / 1000))
+                    drawText(y, dateText, palette.muted)
+
+                    local amount = tonumber(entry.amount) or 0
+                    local other
+                    local amountText
+                    local foreground
+
+                    if entry.action == "REGISTER" then
+                        other = tr("accountOpened")
+                        amountText = "+" .. tostring(amount) .. " BC"
+                        foreground = palette.success
+                    elseif tostring(entry.from) == tostring(accountId) then
+                        other = tr("sentTo") .. " #" .. tostring(entry.to)
+                        amountText = "-" .. tostring(amount) .. " BC"
+                        foreground = palette.danger
+                    else
+                        other = tr("receivedFrom") .. " #" .. tostring(entry.from)
+                        amountText = "+" .. tostring(amount) .. " BC"
+                        foreground = palette.success
+                    end
+
+                    drawText(y + 1, other, palette.text)
+                    drawText(y + 2, amountText, foreground)
+                end
+            end
+        end
+
+        local width, height = dimensions()
+        local buttonWidth = math.floor((width - 2) / 3)
+        local buttonY = height - 4
+        drawSmallButton("back", tr("backPage"), 1, buttonY, buttonWidth, "1", "primary")
+        drawSmallButton("previous", tr("previousPage"), buttonWidth + 2, buttonY, buttonWidth, "2")
+        drawSmallButton("next", tr("nextPage"), buttonWidth * 2 + 3, buttonY, buttonWidth, "3")
+        drawFooter(tostring(page) .. " / " .. tostring(pageCount) .. "  |  1 BACK  2 PREV  3 NEXT")
+
+        local choice = waitChoice()
+        if choice == "back" then
+            return
+        elseif choice == "previous" and page > 1 then
+            page = page - 1
+        elseif choice == "next" and page < pageCount then
+            page = page + 1
+        end
+    end
+end
+
 local function accountMenu()
     while accountId do
         drawHeader(tr("account"), accountName)
-        drawText(8, tr("available"), palette.muted)
-        drawText(10, tostring(balance) .. " BC", palette.goldLight)
-        drawLine(12, "-", palette.surface)
+        drawText(7, tr("available"), palette.muted)
+        drawText(8, tostring(balance) .. " BC", palette.goldLight)
 
-        drawButton("balance", tr("myAccount"), 11, "1", "primary")
-        drawButton("transfer", tr("transfer"), 13, "2")
-        drawButton("refresh", tr("refresh"), 15, "3")
-        drawButton("logout", tr("logout"), 17, "0")
-        drawFooter("1 ACCOUNT  2 SEND  3 REFRESH  0 EXIT")
+        drawButton("balance", tr("myAccount"), 10, "1", "primary")
+        drawButton("transfer", tr("transfer"), 12, "2")
+        drawButton("history", tr("history"), 14, "3")
+        drawButton("refresh", tr("refresh"), 16, "4")
+        drawButton("logout", tr("logout"), 18, "0")
+        drawFooter("1 ACCOUNT  2 SEND  3 HISTORY  4 REFRESH  0 EXIT")
 
         local choice = waitChoice()
 
@@ -568,6 +681,8 @@ local function accountMenu()
             showAccount()
         elseif choice == "transfer" then
             transfer()
+        elseif choice == "history" then
+            showHistory()
         elseif choice == "refresh" then
             if updateBalance() then
                 pause(tr("balanceUpdated"))
