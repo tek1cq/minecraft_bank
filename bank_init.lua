@@ -1,8 +1,6 @@
-local root = "bank_data"
-if not fs.exists(root) then
-    fs.makeDir(root)
-end
-local files = {
+local DATA_DIRECTORY = "bank_data"
+
+local initialFiles = {
     ["accounts.db"] = {
         nextId = 100001,
         accounts = {}
@@ -14,16 +12,24 @@ local files = {
         bankName = "Bank"
     }
 }
-for name, data in pairs(files) do
-    local path = fs.combine(root, name)
-    if not fs.exists(path) then
+
+if not fs.exists(DATA_DIRECTORY) then
+    fs.makeDir(DATA_DIRECTORY)
+end
+
+for fileName, data in pairs(initialFiles) do
+    local path = fs.combine(DATA_DIRECTORY, fileName)
+
+    if fs.exists(path) then
+        print("Preserved: " .. path)
+    else
         local file = fs.open(path, "w")
         file.write(textutils.serialize(data))
         file.close()
+
         print("Created: " .. path)
-    else
-        print("Preserved: " .. path)
     end
 end
+
 print("")
 print("BANK DATABASE READY")
