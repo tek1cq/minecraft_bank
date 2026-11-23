@@ -25,7 +25,7 @@ local messages = {
         available = "AVAILABLE BALANCE",
         accountNumber = "ACCOUNT #",
         input = "INPUT",
-        keyboard = "USE KEYBOARD BELOW",
+        keyboard = "USE KEYBOARD",
         continueText = "CONTINUE",
         back = "BACK",
         notice = "NOTICE",
@@ -132,11 +132,14 @@ local function center(y, value, fg)
         return
     end
 
-    -- Re-read the real terminal width and center within the full screen.
     local valueText = cutText(tostring(value), math.max(1, screenW))
-    local width = textWidth(valueText)
+    local width = #valueText
     local x = math.max(1, math.floor((screenW - width) / 2) + 1)
 
+    -- Clear the whole row first so previous text cannot affect alignment.
+    term.setCursorPos(1, y)
+    term.setBackgroundColor(colors.black)
+    write(string.rep(" ", screenW))
     term.setCursorPos(x, y)
     term.setTextColor(fg or colors.white)
     write(valueText)
