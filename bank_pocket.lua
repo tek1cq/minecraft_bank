@@ -139,7 +139,8 @@ local function center(y, value, fg)
     local centerX = bankX + math.floor(#bankText / 2)
 
     local valueText = cutText(tostring(value), screenW)
-    local textX = centerX - math.floor(#valueText / 2)
+    -- Shift all labels one column right to match BANK's visible center.
+    local textX = centerX - math.floor(#valueText / 2) + 1
     textX = math.max(1, math.min(textX, screenW - #valueText + 1))
 
     term.setBackgroundColor(colors.black)
