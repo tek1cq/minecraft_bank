@@ -5,6 +5,7 @@ local TIMEOUT = 8
 local accountId
 local accountPin
 local accountName
+local accountCreated
 local balance = 0
 local buttons = {}
 
@@ -27,7 +28,10 @@ local messages = {
     login = "SIGN IN",
     register = "REGISTER",
     account = "YOUR ACCOUNT",
-    myAccount = "ACCOUNT DETAILS",
+    myAccount = "ACCOUNT PROFILE",
+    profile = "ACCOUNT PROFILE",
+    registered = "REGISTRATION DATE",
+    notAvailable = "NOT AVAILABLE",
     history = "TRANSACTION HISTORY",
     noHistory = "NO TRANSACTIONS FOUND",
     accountOpened = "ACCOUNT OPENED",
@@ -400,6 +404,7 @@ local function updateBalance()
 
     balance = response.balance
     accountName = response.name
+    accountCreated = response.created
     return true
 end
 
@@ -436,6 +441,7 @@ local function login()
     accountId = id
     accountPin = pin
     accountName = response.name
+    accountCreated = response.created
     balance = response.balance
     return true
 end
@@ -470,6 +476,7 @@ local function register()
     accountId = response.id
     accountPin = pin
     accountName = response.name
+    accountCreated = response.created
     balance = response.balance
 
     drawHeader(tr("created"), accountName)
@@ -486,17 +493,26 @@ local function register()
     return true
 end
 
-local function showAccount()
-    drawHeader(tr("myAccount"), accountName)
-
-    if updateBalance() then
-        drawText(8, tr("available"), palette.muted)
-        drawText(10, tostring(balance) .. " BC", palette.goldLight)
-        local _, height = dimensions()
-        drawLine(12, "-", palette.surface)
-        drawText(height - 8, tr("accountId"), palette.muted)
-        drawPanel(height - 6, tostring(accountId), palette.goldLight)
+local function showProfile()
+    if not updateBalance() then
+        return
     end
+
+    drawHeader(tr("profile"), accountName)
+    drawText(8, "ACCOUNT HOLDER", palette.muted)
+    drawPanel(9, accountName, palette.text)
+    drawText(11, tr("accountId"), palette.muted)
+    drawPanel(12, tostring(accountId), palette.goldLight)
+    drawText(14, tr("registered"), palette.muted)
+
+    if accountCreated then
+        drawPanel(15, os.date("%d.%m.%Y", math.floor(accountCreated / 1000)), palette.text)
+    else
+        drawPanel(15, tr("notAvailable"), palette.muted)
+    end
+
+    drawText(17, tr("available"), palette.muted)
+    drawText(18, tostring(balance) .. " BC", palette.success)
 
     local _, height = dimensions()
     drawButton("back", tr("back"), height - 4, "1", "primary")
@@ -564,6 +580,7 @@ local function transfer()
     if balanceResponse.ok then
         balance = balanceResponse.balance
         accountName = balanceResponse.name
+        accountCreated = balanceResponse.created
     end
 
     drawHeader(tr("completed"))
@@ -766,20 +783,21 @@ end
 
 local function accountMenu()
     while accountId do
-        drawHeader(tr("account"), accountName)
-        drawText(7, tr("available"), palette.muted)
-        drawText(8, tostring(balance) .. " BC", palette.goldLight)
+        drawHeader("ACCOUNT OVERVIEW", accountName)
+        drawText(8, tr("available"), palette.muted)
+        drawPanel(10, tostring(balance) .. " BC", palette.goldLight)
+        drawLine(11, "-", palette.surface)
 
-        drawButton("balance", tr("myAccount"), 10, "1", "primary")
-        drawButton("transfer", tr("transfer"), 12, "2")
-        drawButton("history", tr("history"), 14, "3")
-        drawButton("refresh", tr("refresh"), 16, "4")
-        drawFooter("1 ACCOUNT  2 SEND  3 HISTORY  4 REFRESH")
+        drawButton("profile", tr("profile"), 13, "1", "primary")
+        drawButton("transfer", tr("transfer"), 15, "2")
+        drawButton("history", tr("history"), 17, "3")
+        drawButton("refresh", tr("refresh"), 19, "4")
+        drawFooter("1 PROFILE  2 SEND  3 HISTORY  4 REFRESH")
 
         local choice = waitChoice()
 
-        if choice == "balance" then
-            showAccount()
+        if choice == "profile" then
+            showProfile()
         elseif choice == "transfer" then
             transfer()
         elseif choice == "history" then
