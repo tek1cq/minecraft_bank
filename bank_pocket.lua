@@ -717,7 +717,6 @@ local function showHistory()
         drawSmallButton("all", "ALL", 1, 7, buttonWidth, nil, filter == "all" and "primary" or nil)
         drawSmallButton("incoming", "IN", buttonWidth + 1, 7, buttonWidth, nil, filter == "incoming" and "primary" or nil)
         drawSmallButton("outgoing", "OUT", buttonWidth * 2 + 1, 7, width - buttonWidth * 2, nil, filter == "outgoing" and "primary" or nil)
-        drawSmallButton("refresh", "REFRESH", 1, 0, 1, nil)
 
         if #visible == 0 then
             drawMessage(tr("noHistory"), 11, palette.muted)
@@ -788,10 +787,6 @@ local function showHistory()
         elseif choice == "outgoing" then
             filter = "outgoing"
             page = 1
-        elseif choice == "refresh" then
-            if not loadHistory() then
-                return
-            end
         elseif choice == "detail1" or choice == "detail2" then
             local slot = choice == "detail1" and 1 or 2
             local entry = visible[(page - 1) * pageSize + slot]
@@ -808,7 +803,7 @@ local function showNotifications()
     local page = 1
 
     local response = request({
-        action = "HISTORY",
+        action = "NOTIFICATIONS",
         id = accountId,
         pin = accountPin
     })
@@ -818,11 +813,7 @@ local function showNotifications()
         return
     end
 
-    for _, entry in ipairs(response.transactions or {}) do
-        if entry.action == "TRANSFER" and tostring(entry.to) == tostring(accountId) then
-            entries[#entries + 1] = entry
-        end
-    end
+    entries = response.transactions or {}
 
     while true do
         local width, height = dimensions()
