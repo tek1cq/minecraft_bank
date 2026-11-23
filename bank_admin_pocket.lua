@@ -134,6 +134,8 @@ local function dashboard()
     return wait()
 end
 
+local showHistory
+
 local function accounts()
     local id = ask("FIND ACCOUNT", "Enter Bank ID")
     local r = request("ADMIN_ACCOUNT", {id = id})
@@ -154,7 +156,7 @@ local function accounts()
     end
 end
 
-function showHistory(id)
+showHistory = function(id)
     local r = request("ADMIN_HISTORY", {id = id})
     if not result(r) then return end
     clear("ACCOUNT HISTORY", "LATEST OPERATIONS")
@@ -223,11 +225,16 @@ local function registration()
 end
 
 local function globalHistory()
-    local r = request("ADMIN_HISTORY", {id = ""})
+    local r = request("ADMIN_HISTORY", {id = "*"})
     if not result(r) then return end
     clear("TRANSACTION HISTORY", "SEARCH BY ACCOUNT ID IN ACCOUNTS")
-    text(9, "Use ACCOUNTS to view", colors.lightGray)
-    text(10, "a player's transactions.", colors.lightGray)
+    local y = 8
+    for i = 1, math.min(9, #r.transactions) do
+        local item = r.transactions[i]
+        text(y, tostring(item.action) .. " " .. tostring(item.amount or 0) .. " BC")
+        y = y + 1
+    end
+    if #r.transactions == 0 then text(10, "NO TRANSACTIONS", colors.lightGray) end
     button("back", "BACK", height - 3, true)
     wait()
 end
