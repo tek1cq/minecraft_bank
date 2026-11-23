@@ -25,7 +25,7 @@ local messages = {
         available = "AVAILABLE BALANCE",
         accountNumber = "ACCOUNT #",
         input = "INPUT",
-        keyboard = "Enter a value using keyboard",
+        keyboard = "USE KEYBOARD BELOW",
         continueText = "CONTINUE",
         back = "BACK",
         notice = "NOTICE",
@@ -127,14 +127,15 @@ local function clear()
 end
 
 local function center(y, value, fg)
-    if y < 1 or y > H then
+    local screenW, screenH = term.getSize()
+    if y < 1 or y > screenH then
         return
     end
 
-    -- Keep every centered line inside the usable screen width.
-    local valueText = cutText(tostring(value), math.max(1, W - 2))
+    -- Re-read the real terminal width and center within the full screen.
+    local valueText = cutText(tostring(value), math.max(1, screenW))
     local width = textWidth(valueText)
-    local x = math.max(1, math.floor((W - width) / 2) + 1)
+    local x = math.max(1, math.floor((screenW - width) / 2) + 1)
 
     term.setCursorPos(x, y)
     term.setTextColor(fg or colors.white)
@@ -142,14 +143,15 @@ local function center(y, value, fg)
 end
 
 local function separator(y)
-    -- Draw a real solid gold bar with background color, not dash characters.
-    if y < 1 or y > H then
+    -- A thin gold rule, rather than a thick filled bar.
+    local screenW, screenH = term.getSize()
+    if y < 1 or y > screenH then
         return
     end
-    term.setBackgroundColor(colors.orange)
-    term.setTextColor(colors.black)
+    term.setBackgroundColor(colors.black)
+    term.setTextColor(colors.orange)
     term.setCursorPos(2, y)
-    write(string.rep(" ", math.max(1, W - 2)))
+    write(string.rep("─", math.max(1, screenW - 2)))
     color(colors.black, colors.white)
 end
 
@@ -447,7 +449,7 @@ local function accountMenu()
         addButton("transfer", tr("transfer"), 12, "2")
         addButton("refresh", tr("refresh"), 14, "3")
         addButton("logout", tr("logout"), 18, "0")
-        center(19, "CLICK A BUTTON OR PRESS ITS NUMBER", colors.gray)
+        center(19, "CLICK OR PRESS A NUMBER", colors.gray)
 
         local choice = waitChoice()
 
