@@ -49,7 +49,7 @@ local messages = {
     error = "SOMETHING WENT WRONG",
     bankId = "Enter your Bank ID",
     pin = "Enter your 6-digit PIN",
-    nickname = "Choose a Minecraft nickname",
+    registrationCode = "Enter your registration code",
     newPin = "Create a 6-digit PIN",
     repeatPin = "Confirm your PIN",
     invalidId = "Enter a valid Bank ID",
@@ -83,6 +83,7 @@ local messages = {
     blocked = "This account is blocked",
     invalidName = "Nickname must be 3-20 characters",
     nameTaken = "This nickname is already registered",
+    invalidCode = "Invalid, used or revoked registration code",
     recipientMissing = "Recipient not found or unavailable",
     selfTransfer = "You cannot pay your own account",
     unknownAction = "The server does not support this request",
@@ -94,6 +95,8 @@ local serverErrors = {
     ["ACCOUNT NOT FOUND"] = "accountNotFound",
     ["ACCOUNT BLOCKED"] = "blocked",
     ["INVALID NAME"] = "invalidName",
+    ["INVALID REGISTRATION CODE"] = "invalidCode",
+    ["ACCOUNT ALREADY EXISTS"] = "invalidCode",
     ["PIN MUST BE 6 DIGITS"] = "invalidPin",
     ["NAME ALREADY REGISTERED"] = "nameTaken",
     ["RECIPIENT NOT FOUND OR BLOCKED"] = "recipientMissing",
@@ -439,18 +442,8 @@ local function login()
 end
 
 local function register()
-    local name = ask(tr("register"), tr("nickname"), false)
-    name = name:match("^%s*(.-)%s*$")
-
-    local nameCheck = request({
-        action = "CHECK_NAME",
-        name = name
-    })
-
-    if not nameCheck.ok then
-        showError(nameCheck)
-        return false
-    end
+    local code = ask(tr("register"), tr("registrationCode"), false)
+    code = code:upper():gsub("%s+", "")
 
     local pin = ask(tr("register"), tr("newPin"), true)
     if not pin:match("^%d%d%d%d%d%d$") then
@@ -466,7 +459,7 @@ local function register()
 
     local response = request({
         action = "REGISTER",
-        name = name,
+        code = code,
         pin = pin
     })
 
@@ -477,7 +470,7 @@ local function register()
 
     accountId = response.id
     accountPin = pin
-    accountName = name
+    accountName = response.name
     balance = response.balance
 
     drawHeader(tr("created"), accountName)
