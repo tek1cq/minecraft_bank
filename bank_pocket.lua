@@ -1,7 +1,6 @@
 local SERVER_ID = 203
 local PROTOCOL = "bank"
 local TIMEOUT = 8
-local LANGUAGE_FILE = "bank_language"
 
 local W, H = term.getSize()
 local buttons = {}
@@ -11,66 +10,7 @@ local accountPin
 local accountName
 local balance = 0
 
-local lang = "ru"
-
-local text = {
-    ru = {
-        bank = "БАНК",
-        welcome = "ДОБРО ПОЖАЛОВАТЬ",
-        subtitle = "ЭЛЕКТРОННЫЙ БАНК",
-        login = "ВОЙТИ В БАНК",
-        register = "ОТКРЫТЬ СЧЁТ",
-        language = "ЯЗЫК: РУССКИЙ",
-        cabinet = "ЛИЧНЫЙ КАБИНЕТ",
-        myAccount = "МОЙ СЧЁТ",
-        transfer = "ПЕРЕВОД",
-        refresh = "ОБНОВИТЬ БАЛАНС",
-        logout = "ВЫЙТИ",
-        balance = "БАЛАНС",
-        available = "ДОСТУПНЫЙ БАЛАНС",
-        accountNumber = "СЧЁТ №",
-        input = "ВВОД ДАННЫХ",
-        keyboard = "Введите значение с клавиатуры",
-        continueText = "ПРОДОЛЖИТЬ",
-        back = "НАЗАД",
-        notice = "УВЕДОМЛЕНИЕ",
-        error = "ОШИБКА",
-        bankId = "Банковский ID:",
-        pin = "Введите PIN:",
-        nickname = "Ваш игровой ник:",
-        newPin = "Придумайте 6 цифр:",
-        repeatPin = "Повторите PIN:",
-        invalidId = "Некорректный ID",
-        invalidPin = "PIN должен содержать 6 цифр",
-        pinsDiffer = "PIN-коды не совпадают",
-        created = "СЧЁТ СОЗДАН",
-        yourId = "ВАШ БАНКОВСКИЙ ID",
-        credited = "Начислено: ",
-        recipientId = "ID получателя:",
-        amount = "Сумма перевода:",
-        invalidRecipient = "Некорректный ID получателя",
-        invalidAmount = "Некорректная сумма",
-        notEnough = "Недостаточно средств",
-        confirmation = "ПОДТВЕРЖДЕНИЕ",
-        confirmTransfer = "Подтвердить перевод?",
-        confirm = "ПОДТВЕРДИТЬ",
-        cancel = "ОТМЕНА",
-        cancelled = "Перевод отменён",
-        completed = "ПЕРЕВОД ВЫПОЛНЕН",
-        sent = "Успешно отправлено",
-        recipient = "Получатель: ",
-        done = "ГОТОВО",
-        balanceUpdated = "Баланс обновлён",
-        noModem = "Модем не найден",
-        connectionError = "ОШИБКА СВЯЗИ",
-        noServer = "Нет ответа от сервера",
-        badResponse = "Некорректный ответ сервера",
-        unknownError = "Неизвестная ошибка",
-        secure = "BANK  |  SECURE SYSTEM",
-        yes = "ДА",
-        no = "НЕТ"
-    },
-    en = {
+local messages = {
         bank = "BANK",
         welcome = "WELCOME",
         subtitle = "ELECTRONIC BANK",
@@ -125,7 +65,6 @@ local text = {
         secure = "BANK  |  SECURE SYSTEM",
         yes = "YES",
         no = "NO"
-    }
 }
 
 local serverErrors = {
@@ -142,26 +81,17 @@ local serverErrors = {
     ["SERVER ERROR"] = "serverError"
 }
 
-text.ru.invalidLogin = "Неверный ID или PIN"
-text.ru.blocked = "Счёт заблокирован"
-text.ru.invalidName = "Некорректный ник"
-text.ru.nameTaken = "Этот ник уже зарегистрирован"
-text.ru.recipientMissing = "Получатель не найден или заблокирован"
-text.ru.selfTransfer = "Нельзя перевести деньги самому себе"
-text.ru.unknownAction = "Неизвестная операция"
-text.ru.serverError = "Ошибка сервера"
-
-text.en.invalidLogin = "Wrong ID or PIN"
-text.en.blocked = "Account is blocked"
-text.en.invalidName = "Invalid nickname"
-text.en.nameTaken = "Nickname is already registered"
-text.en.recipientMissing = "Recipient not found or blocked"
-text.en.selfTransfer = "You cannot transfer money to yourself"
-text.en.unknownAction = "Unknown action"
-text.en.serverError = "Server error"
+invalidLogin = "Wrong ID or PIN"
+messages.blocked = "Account is blocked"
+messages.invalidName = "Invalid nickname"
+messages.nameTaken = "Nickname is already registered"
+messages.recipientMissing = "Recipient not found or blocked"
+messages.selfTransfer = "You cannot transfer money to yourself"
+messages.unknownAction = "Unknown action"
+messages.serverError = "Server error"
 
 local function tr(key)
-    return text[lang][key] or key
+    return messages[key] or key
 end
 
 local function utf8Chars(value)
@@ -183,32 +113,6 @@ local function cutText(value, limit)
         result[#result + 1] = chars[i]
     end
     return table.concat(result)
-end
-
-local function loadLanguage()
-    if not fs.exists(LANGUAGE_FILE) then
-        return
-    end
-
-    local file = fs.open(LANGUAGE_FILE, "r")
-    if not file then
-        return
-    end
-
-    local saved = file.readAll()
-    file.close()
-
-    if saved == "ru" or saved == "en" then
-        lang = saved
-    end
-end
-
-local function saveLanguage()
-    local file = fs.open(LANGUAGE_FILE, "w")
-    if file then
-        file.write(lang)
-        file.close()
-    end
 end
 
 local function color(bg, fg)
@@ -514,11 +418,6 @@ local function transfer()
     waitChoice()
 end
 
-local function toggleLanguage()
-    lang = lang == "ru" and "en" or "ru"
-    saveLanguage()
-end
-
 local function accountMenu()
     while accountId do
         header(tr("cabinet"), accountName)
@@ -528,7 +427,6 @@ local function accountMenu()
         addButton("balance", tr("myAccount"), 10, "1")
         addButton("transfer", tr("transfer"), 12, "2")
         addButton("refresh", tr("refresh"), 14, "3")
-        addButton("language", tr("language"), 16, "l")
         addButton("logout", tr("logout"), 18, "0")
 
         local choice = waitChoice()
@@ -541,8 +439,6 @@ local function accountMenu()
             if updateBalance() then
                 pause(tr("balanceUpdated"))
             end
-        elseif choice == "language" then
-            toggleLanguage()
         elseif choice == "logout" then
             accountId = nil
             accountPin = nil
@@ -551,8 +447,6 @@ local function accountMenu()
         end
     end
 end
-
-loadLanguage()
 
 local modemFound = false
 for _, name in ipairs(peripheral.getNames()) do
@@ -574,7 +468,6 @@ while true do
 
     addButton("login", tr("login"), 11, "1")
     addButton("register", tr("register"), 13, "2")
-    addButton("language", tr("language"), 15, "l")
 
     center(H, tr("secure"), colors.gray)
 
@@ -588,7 +481,5 @@ while true do
         if register() then
             accountMenu()
         end
-    elseif choice == "language" then
-        toggleLanguage()
     end
 end
