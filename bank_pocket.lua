@@ -127,22 +127,20 @@ local function clear()
 end
 
 local function center(y, value, fg)
-    local screenW, screenH = term.getSize()
+    -- Use the physical pocket display, not a possibly redirected terminal window.
+    local display = term.native()
+    local screenW, screenH = display.getSize()
     if y < 1 or y > screenH then
         return
     end
 
     local valueText = cutText(tostring(value), math.max(1, screenW))
-    local width = #valueText
-    local x = math.max(1, math.floor((screenW - width) / 2) + 1)
+    local leftPadding = math.max(0, math.floor((screenW - #valueText) / 2))
 
-    -- Clear the whole row first so previous text cannot affect alignment.
-    term.setCursorPos(1, y)
-    term.setBackgroundColor(colors.black)
-    write(string.rep(" ", screenW))
-    term.setCursorPos(x, y)
-    term.setTextColor(fg or colors.white)
-    write(valueText)
+    display.setBackgroundColor(colors.black)
+    display.setTextColor(fg or colors.white)
+    display.setCursorPos(1, y)
+    display.write(string.rep(" ", leftPadding) .. valueText)
 end
 
 local function separator(y)
