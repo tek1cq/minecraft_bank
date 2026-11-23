@@ -127,18 +127,22 @@ local function clear()
 end
 
 local function center(y, value, fg)
-    local screenW, screenH = term.getSize()
-    if y < 1 or y > screenH then
+    local text = tostring(value)
+    local width, height = term.getSize()
+    if y < 1 or y > height then
         return
     end
 
-    local valueText = cutText(tostring(value), screenW)
-    local x = math.floor((screenW - #valueText) / 2) + 1
+    -- CC:Tweaked's documented write_center calculation.
+    if #text > width then
+        text = cutText(text, width)
+    end
 
+    local _, currentY = term.getCursorPos()
     term.setBackgroundColor(colors.black)
     term.setTextColor(fg or colors.white)
-    term.setCursorPos(x, y)
-    term.write(valueText)
+    term.setCursorPos(math.floor((width - #text) / 2) + 1, y or currentY)
+    term.write(text)
 end
 
 local function separator(y)
