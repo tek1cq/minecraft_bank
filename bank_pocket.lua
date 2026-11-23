@@ -25,7 +25,7 @@ local messages = {
     welcome = "WELCOME",
     subtitle = "PRIVATE DIGITAL BANKING",
     login = "SIGN IN",
-    register = "OPEN ACCOUNT",
+    register = "REGISTER",
     account = "YOUR ACCOUNT",
     myAccount = "ACCOUNT DETAILS",
     transfer = "SEND MONEY",
@@ -405,6 +405,16 @@ local function register()
     local name = ask(tr("register"), tr("nickname"), false)
     name = name:match("^%s*(.-)%s*$")
 
+    local nameCheck = request({
+        action = "CHECK_NAME",
+        name = name
+    })
+
+    if not nameCheck.ok then
+        showError(nameCheck)
+        return false
+    end
+
     local pin = ask(tr("register"), tr("newPin"), true)
     if not pin:match("^%d%d%d%d%d%d$") then
         pause(tr("invalidPin"), true)
@@ -453,9 +463,10 @@ local function showAccount()
     if updateBalance() then
         drawText(8, tr("available"), palette.muted)
         drawText(10, tostring(balance) .. " BC", palette.goldLight)
+        local _, height = dimensions()
         drawLine(12, "-", palette.surface)
-        drawText(14, tr("accountId"), palette.muted)
-        drawText(16, tostring(accountId), palette.text)
+        drawText(height - 8, tr("accountId"), palette.muted)
+        drawPanel(height - 6, tostring(accountId), palette.goldLight)
     end
 
     local _, height = dimensions()
@@ -592,7 +603,7 @@ while true do
 
     drawButton("login", tr("login"), 12, "1", "primary")
     drawButton("register", tr("register"), 16, "2")
-    drawFooter("1 SIGN IN  |  2 OPEN ACCOUNT")
+    drawFooter("1 SIGN IN  |  2 REGISTER")
 
     local choice = waitChoice()
 
