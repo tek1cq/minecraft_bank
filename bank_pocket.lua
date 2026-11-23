@@ -580,69 +580,154 @@ local function transfer()
 end
 
 local function showHistory()
-    local response = request({
-        action = "HISTORY",
-        id = accountId,
-        pin = accountPin
-    })
+    local entries = {}
+    local filter = "all"
+    local page = 1
 
-    if not response.ok then
-        showError(response)
+    local function loadHistory()
+        local response = request({
+            action = "HISTORY",
+            id = accountId,
+            pin = accountPin
+        })
+
+        if not response.ok then
+            showError(response)
+            return false
+        end
+
+        entries = response.transactions or {}
+        return true
+    end
+
+    local function filteredEntries()
+        local result = {}
+
+        for _, entry in ipairs(entries) do
+            local outgoing = tostring(entry.from) == tostring(accountId)
+            local incoming = entry.action == "REGISTER" or not outgoing
+
+            if filter == "all"
+                or (filter == "incoming" and incoming)
+                or (filter == "outgoing" and outgoing) then
+                result[#result + 1] = entry
+            end
+        end
+
+        return result
+    end
+
+    local function showDetails(entry)
+        local outgoing = tostring(entry.from) == tostring(accountId)
+        local registered = entry.action == "REGISTER"
+        local dateText = os.date("%d.%m.%Y %H:%M", math.floor((entry.time or 0) / 1000))
+        local kind
+        local other
+        local amount = tonumber(entry.amount) or 0
+        local amountText
+        local amountColor
+
+        if registered then
+            kind = "ACCOUNT OPENED"
+            other = "Bank"
+            amountText = "+" .. tostring(amount) .. " BC"
+            amountColor = palette.success
+        elseif outgoing then
+            kind = "OUTGOING TRANSFER"
+            other = tostring(entry.otherName or ("#" .. tostring(entry.to)))
+            amountText = "-" .. tostring(amount) .. " BC"
+            amountColor = palette.danger
+        else
+            kind = "INCOMING TRANSFER"
+            other = tostring(entry.otherName or ("#" .. tostring(entry.from)))
+            amountText = "+" .. tostring(amount) .. " BC"
+            amountColor = palette.success
+        end
+
+        drawHeader("TRANSACTION DETAILS")
+        drawText(8, dateText, palette.muted)
+        drawText(10, "TYPE", palette.muted)
+        drawText(11, kind, palette.text)
+        drawText(13, registered and "SOURCE" or (outgoing and "RECIPIENT" or "SENDER"), palette.muted)
+        drawText(14, other, palette.text)
+        drawText(16, amountText, amountColor)
+
+        local _, height = dimensions()
+        drawButton("back", tr("backPage"), height - 3, "1", "primary")
+        drawFooter("PRESS 1 TO RETURN")
+        waitChoice()
+    end
+
+    if not loadHistory() then
         return
     end
 
-    local entries = response.transactions or {}
-    local page = 1
-    local pageSize = 2
-    local pageCount = math.max(1, math.ceil(#entries / pageSize))
-
     while true do
-        drawHeader(tr("history"), accountName)
+        local visible = filteredEntries()
+        local pageSize = 2
+        local pageCount = math.max(1, math.ceil(#visible / pageSize))
+        page = math.min(page, pageCount)
 
-        if #entries == 0 then
-            drawMessage(tr("noHistory"), 10, palette.muted)
+        drawHeader(tr("history"), accountName)
+        local width = dimensions()
+        local buttonWidth = math.floor(width / 3)
+        drawSmallButton("all", "ALL", 1, 7, buttonWidth, "a", filter == "all" and "primary" or nil)
+        drawSmallButton("incoming", "IN", buttonWidth + 1, 7, buttonWidth, "i", filter == "incoming" and "primary" or nil)
+        drawSmallButton("outgoing", "OUT", buttonWidth * 2 + 1, 7, width - buttonWidth * 2, "o", filter == "outgoing" and "primary" or nil)
+
+        if #visible == 0 then
+            drawMessage(tr("noHistory"), 11, palette.muted)
         else
             for slot = 1, pageSize do
                 local index = (page - 1) * pageSize + slot
-                local entry = entries[index]
+                local entry = visible[index]
                 local y = 8 + (slot - 1) * 4
 
                 if entry then
                     local dateText = os.date("%d.%m.%Y %H:%M", math.floor((entry.time or 0) / 1000))
-                    drawText(y, dateText, palette.muted)
-
-                    local amount = tonumber(entry.amount) or 0
+                    local outgoing = tostring(entry.from) == tostring(accountId)
+                    local registered = entry.action == "REGISTER"
                     local other
                     local amountText
                     local foreground
 
-                    if entry.action == "REGISTER" then
-                        other = tr("accountOpened")
-                        amountText = "+" .. tostring(amount) .. " BC"
+                    if registered then
+                        other = "Bank"
+                        amountText = "+" .. tostring(entry.amount or 0) .. " BC"
                         foreground = palette.success
-                    elseif tostring(entry.from) == tostring(accountId) then
-                        other = tr("sentTo") .. " " .. tostring(entry.otherName or ("#" .. tostring(entry.to)))
-                        amountText = "-" .. tostring(amount) .. " BC"
+                    elseif outgoing then
+                        other = "TO " .. tostring(entry.otherName or ("#" .. tostring(entry.to)))
+                        amountText = "-" .. tostring(entry.amount or 0) .. " BC"
                         foreground = palette.danger
                     else
-                        other = tr("receivedFrom") .. " " .. tostring(entry.otherName or ("#" .. tostring(entry.from)))
-                        amountText = "+" .. tostring(amount) .. " BC"
+                        other = "FROM " .. tostring(entry.otherName or ("#" .. tostring(entry.from)))
+                        amountText = "+" .. tostring(entry.amount or 0) .. " BC"
                         foreground = palette.success
                     end
 
+                    drawText(y, dateText, palette.muted)
                     drawText(y + 1, other, palette.text)
                     drawText(y + 2, amountText, foreground)
+
+                    buttons[#buttons + 1] = {
+                        id = "detail" .. tostring(slot),
+                        key = tostring(slot + 3),
+                        left = 1,
+                        right = width,
+                        top = y,
+                        bottom = y + 2
+                    }
                 end
             end
         end
 
-        local width, height = dimensions()
-        local buttonWidth = math.floor((width - 2) / 3)
+        local _, height = dimensions()
+        local navWidth = math.floor((width - 2) / 3)
         local buttonY = height - 4
-        drawSmallButton("back", tr("backPage"), 1, buttonY, buttonWidth, "1", "primary")
-        drawSmallButton("previous", tr("previousPage"), buttonWidth + 2, buttonY, buttonWidth, "2")
-        drawSmallButton("next", tr("nextPage"), buttonWidth * 2 + 3, buttonY, buttonWidth, "3")
-        drawFooter(tostring(page) .. " / " .. tostring(pageCount) .. "  |  1 BACK  2 PREV  3 NEXT")
+        drawSmallButton("back", tr("backPage"), 1, buttonY, navWidth, "1", "primary")
+        drawSmallButton("previous", tr("previousPage"), navWidth + 2, buttonY, navWidth, "2")
+        drawSmallButton("next", tr("nextPage"), navWidth * 2 + 3, buttonY, width - (navWidth * 2 + 2), "3")
+        drawFooter(tostring(page) .. " / " .. tostring(pageCount) .. "  |  1 BACK  2 PREV  3 NEXT  R REFRESH")
 
         local choice = waitChoice()
         if choice == "back" then
@@ -651,6 +736,29 @@ local function showHistory()
             page = page - 1
         elseif choice == "next" and page < pageCount then
             page = page + 1
+        elseif choice == "all" then
+            filter = "all"
+            page = 1
+        elseif choice == "incoming" then
+            filter = "incoming"
+            page = 1
+        elseif choice == "outgoing" then
+            filter = "outgoing"
+            page = 1
+        elseif choice == "refresh" then
+            if not loadHistory() then
+                return
+            end
+        elseif choice == "detail1" or choice == "detail2" then
+            local slot = choice == "detail1" and 1 or 2
+            local entry = visible[(page - 1) * pageSize + slot]
+            if entry then
+                showDetails(entry)
+            end
+        elseif choice == "refresh" then
+            if not loadHistory() then
+                return
+            end
         end
     end
 end
