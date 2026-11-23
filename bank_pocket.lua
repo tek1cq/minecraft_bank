@@ -623,6 +623,7 @@ local function showHistory()
         local dateText = os.date("%d.%m.%Y %H:%M", math.floor((entry.time or 0) / 1000))
         local kind
         local other
+        local otherId
         local amount = tonumber(entry.amount) or 0
         local amountText
         local amountColor
@@ -630,16 +631,19 @@ local function showHistory()
         if registered then
             kind = "ACCOUNT OPENED"
             other = "Bank"
+            otherId = "SYSTEM"
             amountText = "+" .. tostring(amount) .. " BC"
             amountColor = palette.success
         elseif outgoing then
             kind = "OUTGOING TRANSFER"
             other = tostring(entry.otherName or ("#" .. tostring(entry.to)))
+            otherId = tostring(entry.to)
             amountText = "-" .. tostring(amount) .. " BC"
             amountColor = palette.danger
         else
             kind = "INCOMING TRANSFER"
             other = tostring(entry.otherName or ("#" .. tostring(entry.from)))
+            otherId = tostring(entry.from)
             amountText = "+" .. tostring(amount) .. " BC"
             amountColor = palette.success
         end
@@ -650,6 +654,7 @@ local function showHistory()
         drawText(11, kind, palette.text)
         drawText(13, registered and "SOURCE" or (outgoing and "RECIPIENT" or "SENDER"), palette.muted)
         drawText(14, other, palette.text)
+        drawText(15, "#" .. otherId, palette.muted)
         drawText(16, amountText, amountColor)
 
         local _, height = dimensions()
@@ -674,6 +679,7 @@ local function showHistory()
         drawSmallButton("all", "ALL", 1, 7, buttonWidth, "a", filter == "all" and "primary" or nil)
         drawSmallButton("incoming", "IN", buttonWidth + 1, 7, buttonWidth, "i", filter == "incoming" and "primary" or nil)
         drawSmallButton("outgoing", "OUT", buttonWidth * 2 + 1, 7, width - buttonWidth * 2, "o", filter == "outgoing" and "primary" or nil)
+        buttons[#buttons + 1] = {id = "refresh", key = "r", left = 0, right = 0, top = 0, bottom = 0}
 
         if #visible == 0 then
             drawMessage(tr("noHistory"), 11, palette.muted)
@@ -754,10 +760,6 @@ local function showHistory()
             local entry = visible[(page - 1) * pageSize + slot]
             if entry then
                 showDetails(entry)
-            end
-        elseif choice == "refresh" then
-            if not loadHistory() then
-                return
             end
         end
     end
