@@ -2,6 +2,7 @@ local DATA = "bank_data"
 local ACCOUNTS = DATA .. "/accounts.db"
 local HISTORY = DATA .. "/transactions.db"
 local SETTINGS = DATA .. "/settings.db"
+local REGISTRATIONS = DATA .. "/registration_codes.db"
 local PROTOCOL = "bank"
 term.clear()
 term.setCursorPos(1, 1)
@@ -30,6 +31,7 @@ local accounts = load(ACCOUNTS, {
     accounts = {}
 })
 local history = load(HISTORY, {})
+local registrations = load(REGISTRATIONS, {codes = {}})
 local settings = load(SETTINGS, {
     startingBalance = 500,
     currency = "BC",
@@ -60,21 +62,26 @@ local function handle(sender, request)
         return {ok = false, error = "INVALID REQUEST"}
     end
     if request.action == "REGISTER" then
-        local name = request.name
+        local code = request.code
         local pin = request.pin
-        if type(name) ~= "string" or #name < 3 or #name > 20 then
-            return {ok = false, error = "INVALID NAME"}
+        if type(code) ~= "string" then
+            return {ok = false, error = "INVALID REGISTRATION CODE"}
+        end
+        code = code:upper()
+        local registration = registrations.codes[code]
+        if not registration or registration.used or registration.revoked then
+            return {ok = false, error = "INVALID REGISTRATION CODE"}
         end
         if type(pin) ~= "string" or not pin:match("^%d%d%d%d%d%d$") then
             return {ok = false, error = "PIN MUST BE 6 DIGITS"}
         end
-        for _, account in pairs(accounts.accounts) do
-            if account.name:lower() == name:lower() then
-                return {ok = false, error = "NAME ALREADY REGISTERED"}
-            end
+        local id = registration.id
+        local name = registration.nickname
+        if findAccount(id) then
+            return {ok = false, error = "ACCOUNT ALREADY EXISTS"}
         end
-        local id = accounts.nextId
-        accounts.nextId = id + 1
+        registration.used = true
+        registration.usedAt = os.epoch("utc")
         accounts.accounts[tostring(id)] = {
             id = id,
             name = name,
@@ -84,11 +91,13 @@ local function handle(sender, request)
             created = os.epoch("utc")
         }
         save(ACCOUNTS, accounts)
+        save(REGISTRATIONS, registrations)
         log("REGISTER", nil, id, settings.startingBalance)
         return {
             ok = true,
             message = "ACCOUNT CREATED",
             id = id,
+            name = name,
             balance = settings.startingBalance
         }
     end
@@ -206,7 +215,9 @@ print("================================")
 print("          BANK SERVER")
 print("================================")
 print("Computer ID: " .. os.getComputerID())
-print("Accounts: " .. #({}))
+local accountCount = 0
+for _ in pairs(accounts.accounts) do accountCount = accountCount + 1 end
+print("Accounts: " .. accountCount)
 print("Starting capital: " .. settings.startingBalance .. " BC")
 print("Network: READY")
 print("--------------------------------")
@@ -215,6 +226,10 @@ print("")
 
 while true do
     local sender, request = rednet.receive(PROTOCOL)
+    accounts = load(ACCOUNTS, {nextId = 1, accounts = {}})
+    history = load(HISTORY, {})
+    settings = load(SETTINGS, {startingBalance = 500, currency = "BC", bankName = "Bank"})
+    registrations = load(REGISTRATIONS, {codes = {}})
     local ok, response = pcall(handle, sender, request)
     if not ok then
         print("ERROR: " .. tostring(response))
