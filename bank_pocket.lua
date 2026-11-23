@@ -84,9 +84,11 @@ messages.recipientMissing = "Recipient not found or blocked"
 messages.selfTransfer = "You cannot transfer money to yourself"
 messages.unknownAction = "Unknown action"
 messages.serverError = "Server error"
+
 local function tr(key)
     return messages[key] or key
 end
+
 local function utf8Chars(value)
     local result = {}
     for char in tostring(value):gmatch("[\0-\127\194-\244][\128-\191]*") do
@@ -94,9 +96,11 @@ local function utf8Chars(value)
     end
     return result
 end
+
 local function textWidth(value)
     return #utf8Chars(value)
 end
+
 local function cutText(value, limit)
     local chars = utf8Chars(value)
     local result = {}
@@ -105,16 +109,19 @@ local function cutText(value, limit)
     end
     return table.concat(result)
 end
+
 local function color(bg, fg)
     term.setBackgroundColor(bg)
     term.setTextColor(fg)
 end
+
 local function clear()
     color(colors.black, colors.white)
     term.clear()
     term.setCursorPos(1, 1)
     buttons = {}
 end
+
 local function center(y, value, fg)
     local width, height = term.getSize()
     if y < 1 or y > height then
@@ -132,6 +139,7 @@ local function center(y, value, fg)
     term.setCursorPos(math.max(1, x), y)
     term.write(text)
 end
+
 local function separator(y)
     local screenW, screenH = term.getSize()
     if y < 1 or y > screenH then
@@ -143,6 +151,7 @@ local function separator(y)
     term.write(string.rep("=", math.max(1, screenW - 2)))
     color(colors.black, colors.white)
 end
+
 local function header(title, subtitle)
     clear()
     center(1, tr("bank"), colors.yellow)
@@ -153,10 +162,12 @@ local function header(title, subtitle)
     end
     separator(6)
 end
+
 local function footer(message)
     local _, height = term.getSize()
     center(height, message, colors.gray)
 end
+
 local function addButton(id, label, y, key)
     local screenW, screenH = term.getSize()
     if y < 1 or y > screenH then
@@ -182,6 +193,7 @@ local function addButton(id, label, y, key)
     }
     color(colors.black, colors.white)
 end
+
 local function waitChoice()
     while true do
         local event, a, b, c = os.pullEvent()
@@ -204,6 +216,7 @@ local function waitChoice()
         end
     end
 end
+
 local function pause(message)
     header(tr("notice"))
     center(9, message or tr("continueText"))
@@ -211,6 +224,7 @@ local function pause(message)
     footer("PRESS 1 TO CONTINUE")
     waitChoice()
 end
+
 local function inputScreen(title, prompt, hidden)
     header(title)
     center(8, prompt)
@@ -229,9 +243,11 @@ local function inputScreen(title, prompt, hidden)
     term.setCursorBlink(false)
     return value
 end
+
 local function inputNumber(prompt)
     return tonumber(inputScreen(tr("input"), prompt))
 end
+
 local function request(data)
     rednet.send(SERVER_ID, data, PROTOCOL)
     local deadline = os.clock() + TIMEOUT
@@ -251,6 +267,7 @@ local function request(data)
         end
     end
 end
+
 local function showError(response)
     local message = tostring(response.error or tr("unknownError"))
     local key = serverErrors[message]
@@ -262,6 +279,7 @@ local function showError(response)
     addButton("back", tr("back"), 12, "1")
     waitChoice()
 end
+
 local function updateBalance()
     local response = request({
         action = "BALANCE",
@@ -276,6 +294,7 @@ local function updateBalance()
     accountName = response.name
     return true
 end
+
 local function login()
     local id = inputNumber(tr("bankId"))
     if not id or id < 1 or id % 1 ~= 0 then
@@ -306,6 +325,7 @@ local function login()
     balance = response.balance
     return true
 end
+
 local function register()
     local name = inputScreen(tr("register"), tr("nickname"))
     local pin = inputScreen(tr("register"), tr("newPin"), true)
@@ -339,6 +359,7 @@ local function register()
     waitChoice()
     return true
 end
+
 local function showBalance()
     header(tr("myAccount"), accountName)
     if updateBalance() then
@@ -353,6 +374,7 @@ local function showBalance()
     footer("PRESS 1 TO RETURN")
     waitChoice()
 end
+
 local function transfer()
     header(tr("transfer"))
     center(8, tr("available") .. ": " .. balance .. " BC", colors.lightGray)
@@ -399,6 +421,7 @@ local function transfer()
     addButton("back", tr("done"), 17, "1")
     waitChoice()
 end
+
 local function accountMenu()
     while accountId do
         header(tr("cabinet"), accountName)
@@ -439,6 +462,7 @@ if not modemFound then
     center(9, tr("noModem"), colors.red)
     return
 end
+
 while true do
     header(tr("welcome"))
     center(8, tr("subtitle"), colors.gray)
