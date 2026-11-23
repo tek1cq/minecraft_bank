@@ -6,6 +6,9 @@ local initialFiles = {
         accounts = {}
     },
     ["transactions.db"] = {},
+    ["registration_codes.db"] = {
+        codes = {}
+    },
     ["settings.db"] = {
         startingBalance = 500,
         currency = "BC",
