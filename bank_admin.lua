@@ -48,6 +48,108 @@ local function inputNumber(message)
     return value
 end
 
+
+local REGISTRATIONS = ROOT .. "/registration_codes.db"
+
+local function loadRegistrations()
+    return load(REGISTRATIONS) or {codes = {}}
+end
+
+local function createAccount()
+    local accounts = load(ACCOUNTS)
+    local registrations = loadRegistrations()
+    if not accounts or type(accounts.accounts) ~= "table" then
+        print("Account database unavailable.")
+        return
+    end
+    write("Minecraft nickname: ")
+    local nickname = read()
+    nickname = nickname:match("^%s*(.-)%s*$")
+    if #nickname < 3 or #nickname > 20 then
+        print("Nickname must be 3-20 characters.")
+        return
+    end
+    for _, account in pairs(accounts.accounts) do
+        if account.name:lower() == nickname:lower() then
+            print("This nickname already has an account.")
+            return
+        end
+    end
+    for _, item in pairs(registrations.codes) do
+        if item.nickname:lower() == nickname:lower() then
+            print("A code already exists for this nickname.")
+            return
+        end
+    end
+    local alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+    local code
+    repeat
+        local parts = {}
+        for i = 1, 8 do
+            local index = math.random(#alphabet)
+            parts[i] = alphabet:sub(index, index)
+        end
+        local raw = table.concat(parts)
+        code = raw:sub(1, 4) .. "-" .. raw:sub(5, 8)
+    until not registrations.codes[code]
+    local id = accounts.nextId or 1
+    accounts.nextId = id + 1
+    registrations.codes[code] = {
+        id = id,
+        nickname = nickname,
+        used = false,
+        revoked = false,
+        createdAt = os.epoch("utc")
+    }
+    save(ACCOUNTS, accounts)
+    save(REGISTRATIONS, registrations)
+    print("")
+    print("ACCOUNT RESERVED")
+    print("Player: " .. nickname)
+    print("Bank ID: " .. id)
+    print("Registration code: " .. code)
+    print("Give this code to the player.")
+end
+
+local function showRegistrationCodes()
+    local registrations = loadRegistrations()
+    print("=== REGISTRATION CODES ===")
+    local count = 0
+    for code, item in pairs(registrations.codes) do
+        count = count + 1
+        local status = item.used and "USED" or (item.revoked and "REVOKED" or "UNUSED")
+        print(code .. " | ID: " .. item.id .. " | " .. item.nickname .. " | " .. status)
+    end
+    if count == 0 then
+        print("No registration codes.")
+    end
+end
+
+local function revokeRegistrationCode()
+    local registrations = loadRegistrations()
+    write("Registration code: ")
+    local code = read():upper()
+    local item = registrations.codes[code]
+    if not item then
+        print("Code not found.")
+        return
+    end
+    if item.used then
+        print("This code has already been used.")
+        return
+    end
+    if item.revoked then
+        print("This code is already revoked.")
+        return
+    end
+    item.revoked = true
+    item.revokedAt = os.epoch("utc")
+    save(REGISTRATIONS, registrations)
+    print("Code revoked.")
+end
+
+math.randomseed(os.epoch("utc") % 2147483647)
+
 local function findPlayer()
     local db = load(ACCOUNTS)
     write("Bank ID: ")
@@ -142,6 +244,9 @@ while true do
     print("4. Block / unblock account")
     print("5. Transaction history")
     print("6. Bank statistics")
+    print("7. Create account")
+    print("8. Registration codes")
+    print("9. Revoke registration code")
     print("0. Exit")
     print("--------------------------------")
     write("Select: ")
@@ -165,6 +270,15 @@ while true do
         pause()
     elseif choice == "6" then
         showStatistics()
+        pause()
+    elseif choice == "7" then
+        createAccount()
+        pause()
+    elseif choice == "8" then
+        showRegistrationCodes()
+        pause()
+    elseif choice == "9" then
+        revokeRegistrationCode()
         pause()
     elseif choice == "0" then
         break
