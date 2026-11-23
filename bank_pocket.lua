@@ -687,7 +687,7 @@ local function showHistory()
             for slot = 1, pageSize do
                 local index = (page - 1) * pageSize + slot
                 local entry = visible[index]
-                local y = 8 + (slot - 1) * 4
+                local y = 9 + (slot - 1) * 4
 
                 if entry then
                     local dateText = os.date("%d.%m.%Y %H:%M", math.floor((entry.time or 0) / 1000))
