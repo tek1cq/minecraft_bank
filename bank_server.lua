@@ -126,6 +126,27 @@ local function handle(sender, request)
             balance = account.balance
         }
     end
+    if request.action == "HISTORY" then
+        local account = findAccount(request.id)
+        if not account or account.pin ~= request.pin then
+            return {ok = false, error = "INVALID ID OR PIN"}
+        end
+        if account.blocked then
+            return {ok = false, error = "ACCOUNT BLOCKED"}
+        end
+        local result = {}
+        for index = #history, 1, -1 do
+            local entry = history[index]
+            if tostring(entry.from) == tostring(account.id)
+                or tostring(entry.to) == tostring(account.id) then
+                result[#result + 1] = entry
+                if #result >= 40 then
+                    break
+                end
+            end
+        end
+        return {ok = true, transactions = result}
+    end
     if request.action == "TRANSFER" then
         local senderAccount = findAccount(request.id)
         local receiverAccount = findAccount(request.target)
