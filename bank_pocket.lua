@@ -872,7 +872,7 @@ local function accountMenu()
         drawSmallButton("profile", "PROF", 1, tabY, tabWidth, nil, "primary")
         drawSmallButton("transfer", "SEND", tabWidth + 1, tabY, tabWidth, nil)
         drawSmallButton("history", "HIST", tabWidth * 2 + 1, tabY, tabWidth, nil)
-        drawSmallButton("notifications", "INBOX", tabWidth * 3 + 1, tabY, width - tabWidth * 3, nil)
+        drawSmallButton("notifications", "MAIL", tabWidth * 3 + 1, tabY, width - tabWidth * 3, nil)
 
         local choice = waitChoice()
 
