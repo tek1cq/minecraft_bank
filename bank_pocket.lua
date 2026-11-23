@@ -2,7 +2,6 @@ local SERVER_ID = 203
 local PROTOCOL = "bank"
 local TIMEOUT = 8
 
-local W, H = term.getSize()
 local buttons = {}
 
 local accountId
@@ -129,48 +128,56 @@ local function clear()
 end
 
 local function center(y, value, fg)
-    local text = tostring(value)
     local width, height = term.getSize()
     if y < 1 or y > height then
         return
     end
 
-    -- CC:Tweaked's documented write_center calculation.
-    if #text > width then
+    local text = tostring(value)
+    if textWidth(text) > width then
         text = cutText(text, width)
     end
 
-    local _, currentY = term.getCursorPos()
+    -- Clear the complete row first, then place the text using terminal columns.
     term.setBackgroundColor(colors.black)
     term.setTextColor(fg or colors.white)
-    term.setCursorPos(math.floor((width - #text) / 2) + 1, y or currentY)
+    term.setCursorPos(1, y)
+    term.clearLine()
+
+    local x = math.floor((width - textWidth(text)) / 2) + 1
+    term.setCursorPos(math.max(1, x), y)
     term.write(text)
 end
 
 local function separator(y)
-    -- Use plain ASCII because the pocket terminal font may not support box-drawing glyphs.
     local screenW, screenH = term.getSize()
     if y < 1 or y > screenH then
         return
     end
+
     term.setBackgroundColor(colors.black)
     term.setTextColor(colors.orange)
     term.setCursorPos(2, y)
-    write(string.rep("-", math.max(1, screenW - 2)))
+    term.write(string.rep("=", math.max(1, screenW - 2)))
     color(colors.black, colors.white)
 end
 
 local function header(title, subtitle)
     clear()
-    center(1, tr("bank"), colors.orange)
+    center(1, tr("bank"), colors.yellow)
     separator(2)
-    center(3, title, colors.orange)
+    center(4, title, colors.white)
 
     if subtitle then
-        center(4, subtitle, colors.gray)
+        center(5, subtitle, colors.gray)
     end
 
-    separator(5)
+    separator(6)
+end
+
+local function footer(message)
+    local _, height = term.getSize()
+    center(height, message, colors.gray)
 end
 
 local function addButton(id, label, y, key)
@@ -179,14 +186,14 @@ local function addButton(id, label, y, key)
         return
     end
 
-    local width = math.min(screenW - 2, math.max(10, textWidth(label) + 6))
+    local width = math.min(screenW - 2, math.max(12, textWidth(label) + 6))
     local safeLabel = cutText(label, math.max(1, width - 4))
     local x = math.max(1, math.floor((screenW - width) / 2) + 1)
     local buttonText = "[ " .. safeLabel .. " ]"
     local textX = x + math.floor((width - textWidth(buttonText)) / 2)
 
-    -- Gold button with black text. The whole bar is clickable.
-    color(colors.orange, colors.black)
+    -- Gold button with dark text; the entire highlighted bar is clickable.
+    color(colors.yellow, colors.black)
     term.setCursorPos(x, y)
     write(string.rep(" ", width))
     term.setCursorPos(textX, y)
@@ -230,8 +237,9 @@ end
 
 local function pause(message)
     header(tr("notice"))
-    center(8, message or tr("continueText"))
-    addButton("back", tr("continueText"), 12, "1")
+    center(9, message or tr("continueText"))
+    addButton("back", tr("continueText"), 13, "1")
+    footer("PRESS 1 TO CONTINUE")
     waitChoice()
 end
 
@@ -239,14 +247,22 @@ local function inputScreen(title, prompt, hidden)
     header(title)
     center(8, prompt)
     center(10, tr("keyboard"), colors.gray)
-    term.setCursorPos(3, 12)
-    term.setTextColor(colors.lightGray)
+    separator(11)
 
+    term.setBackgroundColor(colors.black)
+    term.setTextColor(colors.yellow)
+    term.setCursorPos(3, 12)
+    term.setCursorBlink(true)
+
+    local value
     if hidden then
-        return read("*")
+        value = read("*")
+    else
+        value = read()
     end
 
-    return read()
+    term.setCursorBlink(false)
+    return value
 end
 
 local function inputNumber(prompt)
@@ -391,11 +407,15 @@ local function showBalance()
 
     if updateBalance() then
         center(8, tr("available"), colors.gray)
-        center(10, tostring(balance) .. " BC", colors.lightGray)
-        center(13, tr("accountNumber") .. tostring(accountId))
+        center(10, tostring(balance) .. " BC", colors.yellow)
+        separator(12)
+        center(14, tr("accountNumber"), colors.gray)
+        center(15, tostring(accountId), colors.white)
     end
 
-    addButton("back", tr("back"), H - 2, "1")
+    local _, height = term.getSize()
+    addButton("back", tr("back"), height - 2, "1")
+    footer("PRESS 1 TO RETURN")
     waitChoice()
 end
 
@@ -458,14 +478,15 @@ end
 local function accountMenu()
     while accountId do
         header(tr("cabinet"), accountName)
-        center(7, tr("balance"), colors.gray)
-        center(8, tostring(balance) .. " BC", colors.lightGray)
+        center(8, tr("available"), colors.gray)
+        center(9, tostring(balance) .. " BC", colors.yellow)
+        separator(10)
 
-        addButton("balance", tr("myAccount"), 10, "1")
-        addButton("transfer", tr("transfer"), 12, "2")
-        addButton("refresh", tr("refresh"), 14, "3")
+        addButton("balance", tr("myAccount"), 12, "1")
+        addButton("transfer", tr("transfer"), 14, "2")
+        addButton("refresh", tr("refresh"), 16, "3")
         addButton("logout", tr("logout"), 18, "0")
-        center(19, "CLICK OR PRESS A NUMBER", colors.gray)
+        footer("1-3 SELECT  |  0 LOG OUT")
 
         local choice = waitChoice()
 
@@ -503,11 +524,12 @@ end
 while true do
     header(tr("welcome"))
     center(8, tr("subtitle"), colors.gray)
+    center(9, "FAST  |  SIMPLE  |  SECURE", colors.orange)
 
-    addButton("login", tr("login"), 11, "1")
-    addButton("register", tr("register"), 13, "2")
+    addButton("login", tr("login"), 12, "1")
+    addButton("register", tr("register"), 15, "2")
 
-    center(H, "CLICK A BUTTON OR PRESS ITS NUMBER", colors.gray)
+    footer("PRESS 1 TO LOG IN  |  2 TO JOIN")
 
     local choice = waitChoice()
 
