@@ -67,7 +67,6 @@ local messages = {
     recipientName = "RECIPIENT",
     recipientBankId = "BANK ID",
     backToMenu = "BACK TO MENU",
-    continueText = "CONTINUE",
     invalidRecipient = "Enter a valid recipient ID",
     invalidAmount = "Enter a positive whole amount",
     notEnough = "Your balance is too low",
@@ -533,7 +532,7 @@ local function transfer()
     drawPanel(10, tostring(balance) .. " BC", palette.goldLight)
     drawMessage(tr("recipientPrompt"), 13, palette.text)
     drawButton("continue", tr("continueText"), 16, "1", "primary")
-    drawButton("back", tr("backToMenu"), 19, "2")
+    drawButton("back", tr("backToMenu"), 18, "2")
     drawFooter("1 CONTINUE  |  2 BACK TO MENU")
 
     if waitChoice() == "back" then
@@ -579,7 +578,7 @@ local function transfer()
     drawText(14, "PAYMENT AMOUNT", palette.muted)
     drawPanel(15, tostring(amount) .. " BC", palette.success)
     drawButton("yes", tr("confirm"), 17, "1", "primary")
-    drawButton("no", tr("backToMenu"), 19, "2")
+    drawButton("no", tr("backToMenu"), 18, "2")
     drawFooter("1 CONFIRM  |  2 BACK TO MENU")
 
     if waitChoice() ~= "yes" then
