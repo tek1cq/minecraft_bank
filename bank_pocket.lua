@@ -127,24 +127,30 @@ local function clear()
 end
 
 local function center(y, value, fg)
-    local valueText = tostring(value)
+    if y < 1 or y > H then
+        return
+    end
+
+    -- Keep every centered line inside the usable screen width.
+    local valueText = cutText(tostring(value), math.max(1, W - 2))
     local width = textWidth(valueText)
     local x = math.max(1, math.floor((W - width) / 2) + 1)
 
     term.setCursorPos(x, y)
     term.setTextColor(fg or colors.white)
-    write(cutText(valueText, W))
+    write(valueText)
 end
 
 local function separator(y)
-    center(y, string.rep("-", math.min(W - 2, 28)), colors.gray)
+    -- A clean solid-looking divider using the universally supported ASCII set.
+    center(y, string.rep("=", math.max(1, W - 2)), colors.orange)
 end
 
 local function header(title, subtitle)
     clear()
-    center(1, tr("bank"), colors.lightGray)
+    center(1, tr("bank"), colors.yellow)
     separator(2)
-    center(3, title, colors.white)
+    center(3, title, colors.yellow)
 
     if subtitle then
         center(4, subtitle, colors.gray)
@@ -158,13 +164,14 @@ local function addButton(id, label, y, key)
         return
     end
 
-    local width = math.min(W - 2, math.max(14, textWidth(label) + 6))
-    local x = math.floor((W - width) / 2) + 1
-    local buttonText = "[ " .. label .. " ]"
+    local width = math.min(W - 2, math.max(10, textWidth(label) + 6))
+    local safeLabel = cutText(label, math.max(1, width - 4))
+    local x = math.max(1, math.floor((W - width) / 2) + 1)
+    local buttonText = "[ " .. safeLabel .. " ]"
     local textX = x + math.floor((width - textWidth(buttonText)) / 2)
 
-    -- High-contrast silver button. The whole bar is clickable.
-    color(colors.lightGray, colors.black)
+    -- Gold button with black text. The whole bar is clickable.
+    color(colors.yellow, colors.black)
     term.setCursorPos(x, y)
     write(string.rep(" ", width))
     term.setCursorPos(textX, y)
