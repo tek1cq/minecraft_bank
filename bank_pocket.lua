@@ -61,8 +61,13 @@ local messages = {
     created = "ACCOUNT READY",
     yourId = "YOUR NEW BANK ID",
     credited = "STARTING BALANCE",
-    recipientId = "Recipient Bank ID",
+    recipientId = "Recipient Bank ID or nickname",
+    recipientPrompt = "Enter Bank ID or account nickname",
     amount = "Amount in BC",
+    recipientName = "RECIPIENT",
+    recipientBankId = "BANK ID",
+    backToMenu = "BACK TO MENU",
+    continueText = "CONTINUE",
     invalidRecipient = "Enter a valid recipient ID",
     invalidAmount = "Enter a positive whole amount",
     notEnough = "Your balance is too low",
@@ -103,6 +108,8 @@ local serverErrors = {
     ["PIN MUST BE 6 DIGITS"] = "invalidPin",
     ["NAME ALREADY REGISTERED"] = "nameTaken",
     ["RECIPIENT NOT FOUND OR BLOCKED"] = "recipientMissing",
+    ["RECIPIENT NOT FOUND"] = "recipientMissing",
+    ["RECIPIENT BLOCKED"] = "recipientMissing",
     ["INVALID AMOUNT"] = "invalidAmount",
     ["CANNOT TRANSFER TO YOURSELF"] = "selfTransfer",
     ["NOT ENOUGH MONEY"] = "notEnough",
@@ -523,11 +530,33 @@ end
 local function transfer()
     drawHeader(tr("transfer"), accountName)
     drawText(8, tr("available"), palette.muted)
-    drawText(9, tostring(balance) .. " BC", palette.goldLight)
+    drawPanel(10, tostring(balance) .. " BC", palette.goldLight)
+    drawMessage(tr("recipientPrompt"), 13, palette.text)
+    drawButton("continue", tr("continueText"), 16, "1", "primary")
+    drawButton("back", tr("backToMenu"), 19, "2")
+    drawFooter("1 CONTINUE  |  2 BACK TO MENU")
 
-    local target = askNumber(tr("recipientId"))
-    if not target or target < 1 or target % 1 ~= 0 then
+    if waitChoice() == "back" then
+        return
+    end
+
+    local recipientInput = ask(tr("transfer"), tr("recipientPrompt"), false)
+    recipientInput = tostring(recipientInput or ""):match("^%s*(.-)%s*$")
+
+    if recipientInput == "" then
         pause(tr("invalidRecipient"), true)
+        return
+    end
+
+    local lookup = request({
+        action = "LOOKUP_RECIPIENT",
+        id = accountId,
+        pin = accountPin,
+        recipient = recipientInput
+    })
+
+    if not lookup.ok then
+        showError(lookup)
         return
     end
 
@@ -543,18 +572,17 @@ local function transfer()
     end
 
     drawHeader(tr("confirmation"))
-    drawText(8, tr("recipient"), palette.muted)
-    drawPanel(9, tostring(target), palette.text)
-    drawText(11, "PAYMENT AMOUNT", palette.muted)
-    drawText(13, tostring(amount) .. " BC", palette.goldLight)
-    drawText(15, tr("confirmTransfer"), palette.text)
-
-    drawButton("yes", tr("confirm"), 16, "1", "primary")
-    drawButton("no", tr("cancel"), 18, "2")
-    drawFooter("1 CONFIRM  |  2 CANCEL")
+    drawText(8, tr("recipientName"), palette.muted)
+    drawPanel(9, lookup.name, palette.text)
+    drawText(11, tr("recipientBankId"), palette.muted)
+    drawPanel(12, tostring(lookup.id), palette.goldLight)
+    drawText(14, "PAYMENT AMOUNT", palette.muted)
+    drawPanel(15, tostring(amount) .. " BC", palette.success)
+    drawButton("yes", tr("confirm"), 17, "1", "primary")
+    drawButton("no", tr("backToMenu"), 19, "2")
+    drawFooter("1 CONFIRM  |  2 BACK TO MENU")
 
     if waitChoice() ~= "yes" then
-        pause(tr("cancelled"))
         return
     end
 
@@ -562,7 +590,7 @@ local function transfer()
         action = "TRANSFER",
         id = accountId,
         pin = accountPin,
-        target = target,
+        target = lookup.id,
         amount = amount
     })
 
@@ -584,17 +612,18 @@ local function transfer()
     end
 
     drawHeader(tr("completed"))
-    drawText(9, tr("sent"), palette.muted)
-    drawText(11, tostring(amount) .. " BC", palette.success)
-    drawText(14, tr("recipient"), palette.muted)
-    drawText(15, tostring(target), palette.text)
+    drawText(8, tr("sent"), palette.muted)
+    drawPanel(10, tostring(amount) .. " BC", palette.success)
+    drawText(12, tr("recipientName"), palette.muted)
+    drawPanel(13, lookup.name, palette.text)
+    drawText(15, tr("recipientBankId"), palette.muted)
+    drawPanel(16, tostring(lookup.id), palette.goldLight)
 
     local _, height = dimensions()
     drawButton("back", tr("done"), height - 4, "1", "primary")
     drawFooter("PAYMENT CONFIRMED")
     waitChoice()
 end
-
 local function showHistory()
     local entries = {}
     local filter = "all"
