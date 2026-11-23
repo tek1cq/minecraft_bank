@@ -323,7 +323,7 @@ local function handle(sender, request)
             if not account then return {ok = false, error = "ACCOUNT NOT FOUND"} end
             account.blocked = not account.blocked
             save(ACCOUNTS, accounts)
-            log("ADMIN_BLOCK", account.id, nil, 0)
+            log(account.blocked and "ADMIN_BLOCK" or "ADMIN_UNBLOCK", account.id, nil, nil)
             return {ok = true, blocked = account.blocked}
         end
         if request.action == "ADMIN_HISTORY" then
@@ -332,7 +332,18 @@ local function handle(sender, request)
                 local entry = history[index]
                 if request.id == "*" or tostring(entry.from) == tostring(request.id) or tostring(entry.to) == tostring(request.id)
                     or tostring(entry.id) == tostring(request.id) then
-                    result[#result + 1] = entry
+                    local item = {
+                        time = entry.time,
+                        action = entry.action,
+                        from = entry.from,
+                        to = entry.to,
+                        amount = entry.amount
+                    }
+                    local fromAccount = entry.from and findAccount(entry.from)
+                    local toAccount = entry.to and findAccount(entry.to)
+                    item.fromName = fromAccount and fromAccount.name or (entry.from and tostring(entry.from) or nil)
+                    item.toName = toAccount and toAccount.name or (entry.to and tostring(entry.to) or nil)
+                    result[#result + 1] = item
                     if #result >= 40 then break end
                 end
             end
