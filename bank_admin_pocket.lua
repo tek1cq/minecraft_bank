@@ -249,7 +249,7 @@ local function registration()
         if not result(r) then return end
         clear("REGISTRATION CODES", "LATEST CODES")
         local y = 8
-        for i = math.max(1, #r.codes - 8), #r.codes do
+        for i = math.max(1, #r.codes - 4), #r.codes do
             local item = r.codes[i]
             local status = item.used and "USED" or (item.revoked and "REVOKED" or "READY")
             text(y, "ID " .. tostring(item.id) .. " " .. tostring(item.nickname))
