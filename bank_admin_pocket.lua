@@ -156,19 +156,60 @@ local function accounts()
     end
 end
 
-showHistory = function(id)
-    local r = request("ADMIN_HISTORY", {id = id})
+local function historyView(id, title)
+    local r = request("ADMIN_HISTORY", {id = id or "*"})
     if not result(r) then return end
-    clear("ACCOUNT HISTORY", "LATEST OPERATIONS")
-    local y = 8
-    for i = 1, math.min(7, #r.transactions) do
-        local item = r.transactions[i]
-        text(y, tostring(item.action) .. " " .. tostring(item.amount or 0) .. " BC")
-        y = y + 1
+    local page = 1
+    local perPage = 4
+    while true do
+        clear(title, "SELECT AN OPERATION")
+        local totalPages = math.max(1, math.ceil(#r.transactions / perPage))
+        if #r.transactions == 0 then
+            text(9, "NO TRANSACTIONS", colors.lightGray)
+        else
+            local first = (page - 1) * perPage + 1
+            local last = math.min(#r.transactions, first + perPage - 1)
+            local y = 8
+            for i = first, last do
+                local item = r.transactions[i]
+                local label = tostring(item.action)
+                if item.amount and item.amount > 0 then label = label .. " " .. tostring(item.amount) .. " BC" end
+                button("entry:" .. i, label, y)
+                y = y + 2
+            end
+        end
+        text(height - 3, "PAGE " .. page .. "/" .. totalPages, colors.lightGray)
+        if page > 1 then button("prev", "PREV", height - 2) end
+        if page < totalPages then button("next", "NEXT", height - 2) end
+        button("back", "BACK", height, true)
+        local choice = wait()
+        if choice == "back" then return end
+        if choice == "prev" then page = math.max(1, page - 1)
+        elseif choice == "next" then page = math.min(totalPages, page + 1)
+        elseif type(choice) == "string" and choice:sub(1, 6) == "entry:" then
+            local item = r.transactions[tonumber(choice:sub(7))]
+            if item then
+                clear("OPERATION DETAILS")
+                text(7, "ACTION: " .. tostring(item.action), colors.yellow)
+                if item.time then
+                    text(8, os.date("%d.%m.%Y %H:%M", math.floor(item.time / 1000)))
+                end
+                text(10, "FROM: " .. tostring(item.fromName or item.from or "-"))
+                text(11, "TO: " .. tostring(item.toName or item.to or "-"))
+                if item.amount and item.amount > 0 then
+                    text(13, "AMOUNT: " .. tostring(item.amount) .. " BC", colors.lime)
+                else
+                    text(13, "AMOUNT: -")
+                end
+                button("back", "BACK TO HISTORY", height - 2, true)
+                wait()
+            end
+        end
     end
-    if #r.transactions == 0 then text(10, "NO TRANSACTIONS", colors.lightGray) end
-    button("back", "BACK", height - 2, true)
-    wait()
+end
+
+showHistory = function(id)
+    historyView(id, "ACCOUNT HISTORY")
 end
 
 local function money()
@@ -211,7 +252,9 @@ local function registration()
         for i = math.max(1, #r.codes - 8), #r.codes do
             local item = r.codes[i]
             local status = item.used and "USED" or (item.revoked and "REVOKED" or "READY")
-            text(y, tostring(item.code) .. " " .. tostring(item.nickname) .. " " .. status)
+            text(y, "ID " .. tostring(item.id) .. " " .. tostring(item.nickname))
+            y = y + 1
+            text(y, tostring(item.code) .. " " .. status, colors.lime)
             y = y + 1
         end
         if #r.codes == 0 then text(10, "NO CODES") end
@@ -225,18 +268,7 @@ local function registration()
 end
 
 local function globalHistory()
-    local r = request("ADMIN_HISTORY", {id = "*"})
-    if not result(r) then return end
-    clear("TRANSACTION HISTORY", "SEARCH BY ACCOUNT ID IN ACCOUNTS")
-    local y = 8
-    for i = 1, math.min(9, #r.transactions) do
-        local item = r.transactions[i]
-        text(y, tostring(item.action) .. " " .. tostring(item.amount or 0) .. " BC")
-        y = y + 1
-    end
-    if #r.transactions == 0 then text(10, "NO TRANSACTIONS", colors.lightGray) end
-    button("back", "BACK", height - 3, true)
-    wait()
+    historyView("*", "TRANSACTION HISTORY")
 end
 
 local opened = false
