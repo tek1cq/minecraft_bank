@@ -195,9 +195,9 @@ local function addButton(id, label, y, key)
     -- Gold button with dark text; the entire highlighted bar is clickable.
     color(colors.yellow, colors.black)
     term.setCursorPos(x, y)
-    write(string.rep(" ", width))
+    term.write(string.rep(" ", width))
     term.setCursorPos(textX, y)
-    write(buttonText)
+    term.write(buttonText)
 
     buttons[#buttons + 1] = {
         id = id,
@@ -529,7 +529,7 @@ while true do
     addButton("login", tr("login"), 12, "1")
     addButton("register", tr("register"), 15, "2")
 
-    footer("PRESS 1 TO LOG IN  |  2 TO JOIN")
+    footer("1 LOG IN  |  2 REGISTER")
 
     local choice = waitChoice()
 
