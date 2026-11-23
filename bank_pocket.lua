@@ -628,11 +628,11 @@ local function showHistory()
                         amountText = "+" .. tostring(amount) .. " BC"
                         foreground = palette.success
                     elseif tostring(entry.from) == tostring(accountId) then
-                        other = tr("sentTo") .. " #" .. tostring(entry.to)
+                        other = tr("sentTo") .. " " .. tostring(entry.otherName or ("#" .. tostring(entry.to)))
                         amountText = "-" .. tostring(amount) .. " BC"
                         foreground = palette.danger
                     else
-                        other = tr("receivedFrom") .. " #" .. tostring(entry.from)
+                        other = tr("receivedFrom") .. " " .. tostring(entry.otherName or ("#" .. tostring(entry.from)))
                         amountText = "+" .. tostring(amount) .. " BC"
                         foreground = palette.success
                     end
