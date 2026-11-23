@@ -330,7 +330,7 @@ local function handle(sender, request)
             local result = {}
             for index = #history, 1, -1 do
                 local entry = history[index]
-                if tostring(entry.from) == tostring(request.id) or tostring(entry.to) == tostring(request.id)
+                if request.id == "*" or tostring(entry.from) == tostring(request.id) or tostring(entry.to) == tostring(request.id)
                     or tostring(entry.id) == tostring(request.id) then
                     result[#result + 1] = entry
                     if #result >= 40 then break end
