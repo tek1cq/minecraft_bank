@@ -128,8 +128,8 @@ local function dashboard()
     text(12, "BLOCKED        " .. r.blocked, colors.red)
     button("accounts", "ACCOUNTS", 15)
     button("money", "MONEY", 16)
-    button("registration", "REGISTRATION", 17)
-    button("history", "HISTORY", 18)
+    button("history", "HISTORY", 17)
+    button("registration", "REGISTRATIONS", 18)
     button("exit", "LOCK / EXIT", 19, true)
     return wait()
 end
@@ -211,7 +211,7 @@ local function registration()
         for i = math.max(1, #r.codes - 8), #r.codes do
             local item = r.codes[i]
             local status = item.used and "USED" or (item.revoked and "REVOKED" or "READY")
-            text(y, tostring(item.id) .. " " .. tostring(item.nickname) .. " " .. status)
+            text(y, tostring(item.code) .. " " .. tostring(item.nickname) .. " " .. status)
             y = y + 1
         end
         if #r.codes == 0 then text(10, "NO CODES") end
