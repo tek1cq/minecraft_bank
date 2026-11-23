@@ -127,19 +127,23 @@ local function clear()
 end
 
 local function center(y, value, fg)
-    -- All centered UI text uses the same active terminal and the same width calculation.
+    -- Use the exact center column of the BANK title as the anchor for every centered label.
     local screenW, screenH = term.getSize()
     if y < 1 or y > screenH then
         return
     end
 
+    local bankText = cutText(tr("bank"), screenW)
+    local bankX = math.floor((screenW - #bankText) / 2) + 1
+    local centerX = bankX + math.floor((#bankText - 1) / 2)
+
     local valueText = cutText(tostring(value), screenW)
-    local leftPadding = math.floor((screenW - #valueText) / 2)
+    local textX = centerX - math.floor((#valueText - 1) / 2)
+    textX = math.max(1, math.min(textX, screenW - #valueText + 1))
 
     term.setBackgroundColor(colors.black)
     term.setTextColor(fg or colors.white)
-    term.setCursorPos(1, y)
-    term.write(string.rep(" ", leftPadding))
+    term.setCursorPos(textX, y)
     term.write(valueText)
 end
 
