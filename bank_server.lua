@@ -111,6 +111,14 @@ local function handle(sender, request)
         }
     end
 
+    if request.action == "CHECK_ID" then
+        local account = findAccount(request.id)
+        if not account then
+            return {ok = false, error = "ACCOUNT NOT FOUND"}
+        end
+        return {ok = true}
+    end
+
     if request.action == "BALANCE" then
         local account = findAccount(request.id)
 
