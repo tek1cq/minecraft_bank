@@ -16,7 +16,6 @@ local messages = {
         subtitle = "ELECTRONIC BANK",
         login = "LOG IN",
         register = "OPEN ACCOUNT",
-        language = "LANGUAGE: ENGLISH",
         cabinet = "ACCOUNT",
         myAccount = "MY ACCOUNT",
         transfer = "TRANSFER",
@@ -81,7 +80,7 @@ local serverErrors = {
     ["SERVER ERROR"] = "serverError"
 }
 
-invalidLogin = "Wrong ID or PIN"
+messages.invalidLogin = "Wrong ID or PIN"
 messages.blocked = "Account is blocked"
 messages.invalidName = "Invalid nickname"
 messages.nameTaken = "Nickname is already registered"
