@@ -99,6 +99,18 @@ local function handle(sender, request)
         end
         return {ok = true}
     end
+    if request.action == "CHECK_NAME" then
+        local name = request.name
+        if type(name) ~= "string" or #name < 3 or #name > 20 then
+            return {ok = false, error = "INVALID NAME"}
+        end
+        for _, account in pairs(accounts.accounts) do
+            if account.name:lower() == name:lower() then
+                return {ok = false, error = "NAME ALREADY REGISTERED"}
+            end
+        end
+        return {ok = true}
+    end
     if request.action == "BALANCE" then
         local account = findAccount(request.id)
         if not account or account.pin ~= request.pin then
