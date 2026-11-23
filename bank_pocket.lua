@@ -158,11 +158,12 @@ local function addButton(id, label, y, key)
         return
     end
 
-    local width = math.min(W - 2, math.max(12, textWidth(label) + 4))
+    local width = math.min(W - 2, math.max(14, textWidth(label) + 6))
     local x = math.floor((W - width) / 2) + 1
-    local buttonText = "[" .. label .. "]"
+    local buttonText = "[ " .. label .. " ]"
     local textX = x + math.floor((width - textWidth(buttonText)) / 2)
 
+    -- High-contrast silver button. The whole bar is clickable.
     color(colors.lightGray, colors.black)
     term.setCursorPos(x, y)
     write(string.rep(" ", width))
@@ -174,7 +175,8 @@ local function addButton(id, label, y, key)
         key = key,
         x1 = x,
         x2 = x + width - 1,
-        y = y
+        y1 = y,
+        y2 = y
     }
 
     color(colors.black, colors.white)
@@ -191,9 +193,13 @@ local function waitChoice()
                 end
             end
         elseif event == "mouse_click" then
-            for _, button in ipairs(buttons) do
-                if c == button.y and b >= button.x1 and b <= button.x2 then
-                    return button.id
+            local mouseButton, x, y = a, b, c
+            if mouseButton == 1 then
+                for _, button in ipairs(buttons) do
+                    if y >= button.y1 and y <= button.y2
+                        and x >= button.x1 and x <= button.x2 then
+                        return button.id
+                    end
                 end
             end
         end
@@ -427,6 +433,7 @@ local function accountMenu()
         addButton("transfer", tr("transfer"), 12, "2")
         addButton("refresh", tr("refresh"), 14, "3")
         addButton("logout", tr("logout"), 18, "0")
+        center(19, "CLICK A BUTTON OR PRESS ITS NUMBER", colors.gray)
 
         local choice = waitChoice()
 
@@ -468,7 +475,7 @@ while true do
     addButton("login", tr("login"), 11, "1")
     addButton("register", tr("register"), 13, "2")
 
-    center(H, tr("secure"), colors.gray)
+    center(H, "CLICK A BUTTON OR PRESS ITS NUMBER", colors.gray)
 
     local choice = waitChoice()
 
