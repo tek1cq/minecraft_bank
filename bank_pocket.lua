@@ -127,23 +127,17 @@ local function clear()
 end
 
 local function center(y, value, fg)
-    -- Use the exact center column of the BANK title as the anchor for every centered label.
     local screenW, screenH = term.getSize()
     if y < 1 or y > screenH then
         return
     end
 
-    local bankText = cutText(tr("bank"), screenW)
-    local bankX = math.floor((screenW - #bankText) / 2) + 1
-
     local valueText = cutText(tostring(value), screenW)
-    -- Align by the exact left edge of BANK and the width difference.
-    local textX = bankX + math.floor((#bankText - #valueText) / 2)
-    textX = math.max(1, math.min(textX, screenW - #valueText + 1))
+    local x = math.floor((screenW - #valueText) / 2) + 1
 
     term.setBackgroundColor(colors.black)
     term.setTextColor(fg or colors.white)
-    term.setCursorPos(textX, y)
+    term.setCursorPos(x, y)
     term.write(valueText)
 end
 
