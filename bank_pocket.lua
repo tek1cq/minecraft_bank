@@ -142,15 +142,22 @@ local function center(y, value, fg)
 end
 
 local function separator(y)
-    -- A clean solid-looking divider using the universally supported ASCII set.
-    center(y, string.rep("=", math.max(1, W - 2)), colors.orange)
+    -- Draw a real solid gold bar with background color, not dash characters.
+    if y < 1 or y > H then
+        return
+    end
+    term.setBackgroundColor(colors.orange)
+    term.setTextColor(colors.black)
+    term.setCursorPos(2, y)
+    write(string.rep(" ", math.max(1, W - 2)))
+    color(colors.black, colors.white)
 end
 
 local function header(title, subtitle)
     clear()
-    center(1, tr("bank"), colors.yellow)
+    center(1, tr("bank"), colors.orange)
     separator(2)
-    center(3, title, colors.yellow)
+    center(3, title, colors.orange)
 
     if subtitle then
         center(4, subtitle, colors.gray)
@@ -171,7 +178,7 @@ local function addButton(id, label, y, key)
     local textX = x + math.floor((width - textWidth(buttonText)) / 2)
 
     -- Gold button with black text. The whole bar is clickable.
-    color(colors.yellow, colors.black)
+    color(colors.orange, colors.black)
     term.setCursorPos(x, y)
     write(string.rep(" ", width))
     term.setCursorPos(textX, y)
