@@ -23,7 +23,7 @@ local messages = {
         logout = "LOG OUT",
         balance = "BALANCE",
         available = "AVAILABLE BALANCE",
-        accountNumber = "ACCOUNT #",
+        accountNumber = "ACCOUNT ID",
         input = "INPUT",
         keyboard = "USE KEYBOARD",
         continueText = "CONTINUE",
@@ -68,6 +68,7 @@ local messages = {
 
 local serverErrors = {
     ["INVALID ID OR PIN"] = "invalidLogin",
+    ["ACCOUNT NOT FOUND"] = "accountNotFound",
     ["ACCOUNT BLOCKED"] = "blocked",
     ["INVALID NAME"] = "invalidName",
     ["PIN MUST BE 6 DIGITS"] = "invalidPin",
@@ -80,7 +81,8 @@ local serverErrors = {
     ["SERVER ERROR"] = "serverError"
 }
 
-messages.invalidLogin = "Wrong ID or PIN"
+messages.invalidLogin = "Wrong PIN"
+messages.accountNotFound = "No account with this ID"
 messages.blocked = "Account is blocked"
 messages.invalidName = "Invalid nickname"
 messages.nameTaken = "Nickname is already registered"
@@ -311,6 +313,16 @@ local function login()
 
     if not id or id < 1 or id % 1 ~= 0 then
         pause(tr("invalidId"))
+        return false
+    end
+
+    local check = request({
+        action = "CHECK_ID",
+        id = id
+    })
+
+    if not check.ok then
+        showError(check)
         return false
     end
 
