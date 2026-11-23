@@ -172,6 +172,45 @@ local function handle(sender, request)
         end
         return {ok = true, transactions = result}
     end
+    if request.action == "LOOKUP_RECIPIENT" then
+        local senderAccount = findAccount(request.id)
+        if not senderAccount or senderAccount.pin ~= request.pin then
+            return {ok = false, error = "INVALID ID OR PIN"}
+        end
+        if senderAccount.blocked then
+            return {ok = false, error = "ACCOUNT BLOCKED"}
+        end
+        if type(request.recipient) ~= "string" or request.recipient == "" then
+            return {ok = false, error = "RECIPIENT NOT FOUND"}
+        end
+        local recipient = nil
+        local numericId = tonumber(request.recipient)
+        if numericId and numericId >= 1 and numericId % 1 == 0 then
+            recipient = findAccount(numericId)
+        else
+            local searchName = request.recipient:lower()
+            for _, candidate in pairs(accounts.accounts) do
+                if type(candidate.name) == "string" and candidate.name:lower() == searchName then
+                    recipient = candidate
+                    break
+                end
+            end
+        end
+        if not recipient then
+            return {ok = false, error = "RECIPIENT NOT FOUND"}
+        end
+        if recipient.blocked then
+            return {ok = false, error = "RECIPIENT BLOCKED"}
+        end
+        if tostring(recipient.id) == tostring(senderAccount.id) then
+            return {ok = false, error = "CANNOT TRANSFER TO YOURSELF"}
+        end
+        return {
+            ok = true,
+            id = recipient.id,
+            name = recipient.name
+        }
+    end
     if request.action == "TRANSFER" then
         local senderAccount = findAccount(request.id)
         local receiverAccount = findAccount(request.target)
