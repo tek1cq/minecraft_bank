@@ -137,6 +137,34 @@ local function handle(sender, request)
             created = account.created
         }
     end
+    if request.action == "NOTIFICATIONS" then
+        local account = findAccount(request.id)
+        if not account or account.pin ~= request.pin then
+            return {ok = false, error = "INVALID ID OR PIN"}
+        end
+        if account.blocked then
+            return {ok = false, error = "ACCOUNT BLOCKED"}
+        end
+        local result = {}
+        for index = #history, 1, -1 do
+            local entry = history[index]
+            if entry.action == "TRANSFER" and tostring(entry.to) == tostring(account.id) then
+                local senderAccount = findAccount(entry.from)
+                result[#result + 1] = {
+                    time = entry.time,
+                    action = entry.action,
+                    from = entry.from,
+                    to = entry.to,
+                    amount = entry.amount,
+                    otherName = senderAccount and senderAccount.name or tostring(entry.from)
+                }
+                if #result >= 40 then
+                    break
+                end
+            end
+        end
+        return {ok = true, transactions = result}
+    end
     if request.action == "HISTORY" then
         local account = findAccount(request.id)
         if not account or account.pin ~= request.pin then
