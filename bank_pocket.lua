@@ -33,6 +33,8 @@ local messages = {
     registered = "REGISTRATION DATE",
     notAvailable = "NOT AVAILABLE",
     history = "TRANSACTION HISTORY",
+    notifications = "INCOMING PAYMENTS",
+    noNotifications = "NO INCOMING PAYMENTS",
     noHistory = "NO TRANSACTIONS FOUND",
     accountOpened = "ACCOUNT OPENED",
     sentTo = "SENT TO",
@@ -304,20 +306,12 @@ end
 
 local function waitChoice()
     while true do
-        local event, first, second, third = os.pullEvent()
-
-        if event == "char" then
-            for _, button in ipairs(buttons) do
-                if button.key and button.key == first then
-                    return button.id
-                end
-            end
-        elseif event == "mouse_click" and first == 1 then
-            local x, y = second, third
-            for _, button in ipairs(buttons) do
-                if x >= button.left and x <= button.right
-                    and y >= button.top and y <= button.bottom then
-                    return button.id
+        local event, button, x, y = os.pullEvent("mouse_click")
+        if button == 1 then
+            for _, item in ipairs(buttons) do
+                if x >= item.left and x <= item.right
+                    and y >= item.top and y <= item.bottom then
+                    return item.id
                 end
             end
         end
@@ -328,8 +322,8 @@ local function pause(value, isError)
     drawHeader(isError and tr("error") or tr("notice"))
     drawMessage(value or tr("continueText"), 9, isError and palette.danger or palette.text)
     local _, height = dimensions()
-    drawButton("continue", tr("continueText"), height - 4, "1", "primary")
-    drawFooter("TAP TO CONTINUE  |  PRESS 1")
+    drawButton("continue", tr("continueText"), height - 4, nil, "primary")
+    drawFooter("TAP TO CONTINUE")
     waitChoice()
 end
 
@@ -492,7 +486,7 @@ local function register()
     drawText(15, tostring(balance) .. " BC", palette.success)
 
     local _, height = dimensions()
-    drawButton("continue", tr("continueText"), height - 4, "1", "primary")
+    drawButton("continue", tr("continueText"), height - 4, nil, "primary")
     drawFooter("SAVE YOUR BANK ID")
     waitChoice()
 
@@ -521,8 +515,8 @@ local function showProfile()
     drawText(18, tostring(balance) .. " BC", palette.success)
 
     local _, height = dimensions()
-    drawButton("back", tr("back"), height - 4, "1", "primary")
-    drawFooter("PRESS 1 TO RETURN")
+    drawButton("back", tr("back"), height - 4, nil, "primary")
+    drawFooter("TAP TO RETURN")
     waitChoice()
 end
 
@@ -531,9 +525,9 @@ local function transfer()
     drawText(8, tr("available"), palette.muted)
     drawPanel(10, tostring(balance) .. " BC", palette.goldLight)
     drawMessage(tr("recipientPrompt"), 13, palette.text)
-    drawButton("continue", tr("continueText"), 16, "1", "primary")
-    drawButton("back", tr("backToMenu"), 18, "2")
-    drawFooter("1 CONTINUE  |  2 BACK TO MENU")
+    drawButton("continue", tr("continueText"), 16, nil, "primary")
+    drawButton("back", tr("backToMenu"), 18, nil)
+    drawFooter("SELECT AN OPTION")
 
     if waitChoice() == "back" then
         return
@@ -577,9 +571,9 @@ local function transfer()
     drawPanel(12, tostring(lookup.id), palette.goldLight)
     drawText(14, "PAYMENT AMOUNT", palette.muted)
     drawPanel(15, tostring(amount) .. " BC", palette.success)
-    drawButton("yes", tr("confirm"), 17, "1", "primary")
-    drawButton("no", tr("backToMenu"), 18, "2")
-    drawFooter("1 CONFIRM  |  2 BACK TO MENU")
+    drawButton("yes", tr("confirm"), 17, nil, "primary")
+    drawButton("no", tr("backToMenu"), 18, nil)
+    drawFooter("CONFIRM OR GO BACK")
 
     if waitChoice() ~= "yes" then
         return
@@ -619,7 +613,7 @@ local function transfer()
     drawPanel(16, tostring(lookup.id), palette.goldLight)
 
     local _, height = dimensions()
-    drawButton("back", tr("done"), height - 4, "1", "primary")
+    drawButton("back", tr("done"), height - 4, nil, "primary")
     drawFooter("PAYMENT CONFIRMED")
     waitChoice()
 end
@@ -702,8 +696,8 @@ local function showHistory()
         drawText(15, amountText, amountColor)
 
         local _, height = dimensions()
-        drawButton("back", tr("backPage"), height - 3, "1", "primary")
-        drawFooter("PRESS 1 TO RETURN")
+        drawButton("back", tr("backPage"), height - 3, nil, "primary")
+        drawFooter("TAP TO RETURN")
         waitChoice()
     end
 
@@ -720,10 +714,10 @@ local function showHistory()
         drawHeader(tr("history"), accountName)
         local width = dimensions()
         local buttonWidth = math.floor(width / 3)
-        drawSmallButton("all", "ALL", 1, 7, buttonWidth, "a", filter == "all" and "primary" or nil)
-        drawSmallButton("incoming", "IN", buttonWidth + 1, 7, buttonWidth, "i", filter == "incoming" and "primary" or nil)
-        drawSmallButton("outgoing", "OUT", buttonWidth * 2 + 1, 7, width - buttonWidth * 2, "o", filter == "outgoing" and "primary" or nil)
-        buttons[#buttons + 1] = {id = "refresh", key = "r", left = 0, right = 0, top = 0, bottom = 0}
+        drawSmallButton("all", "ALL", 1, 7, buttonWidth, nil, filter == "all" and "primary" or nil)
+        drawSmallButton("incoming", "IN", buttonWidth + 1, 7, buttonWidth, nil, filter == "incoming" and "primary" or nil)
+        drawSmallButton("outgoing", "OUT", buttonWidth * 2 + 1, 7, width - buttonWidth * 2, nil, filter == "outgoing" and "primary" or nil)
+        drawSmallButton("refresh", "REFRESH", 1, 0, 1, nil)
 
         if #visible == 0 then
             drawMessage(tr("noHistory"), 11, palette.muted)
@@ -761,7 +755,6 @@ local function showHistory()
 
                     buttons[#buttons + 1] = {
                         id = "detail" .. tostring(slot),
-                        key = tostring(slot + 3),
                         left = 1,
                         right = width,
                         top = y,
@@ -774,10 +767,10 @@ local function showHistory()
         local _, height = dimensions()
         local navWidth = math.floor((width - 2) / 3)
         local buttonY = height - 4
-        drawSmallButton("back", tr("backPage"), 1, buttonY, navWidth, "1", "primary")
-        drawSmallButton("previous", tr("previousPage"), navWidth + 2, buttonY, navWidth, "2")
-        drawSmallButton("next", tr("nextPage"), navWidth * 2 + 3, buttonY, width - (navWidth * 2 + 2), "3")
-        drawFooter(tostring(page) .. " / " .. tostring(pageCount) .. "  |  1 BACK  2 PREV  3 NEXT  R REFRESH")
+        drawSmallButton("back", tr("backPage"), 1, buttonY, navWidth, nil, "primary")
+        drawSmallButton("previous", tr("previousPage"), navWidth + 2, buttonY, navWidth, nil)
+        drawSmallButton("next", tr("nextPage"), navWidth * 2 + 3, buttonY, width - (navWidth * 2 + 2), nil)
+        drawFooter(tostring(page) .. " / " .. tostring(pageCount) .. "  |  TAP TO NAVIGATE")
 
         local choice = waitChoice()
         if choice == "back" then
@@ -809,18 +802,86 @@ local function showHistory()
     end
 end
 
+
+local function showNotifications()
+    local entries = {}
+    local page = 1
+
+    local response = request({
+        action = "HISTORY",
+        id = accountId,
+        pin = accountPin
+    })
+
+    if not response.ok then
+        showError(response)
+        return
+    end
+
+    for _, entry in ipairs(response.transactions or {}) do
+        if entry.action == "TRANSFER" and tostring(entry.to) == tostring(accountId) then
+            entries[#entries + 1] = entry
+        end
+    end
+
+    while true do
+        local width, height = dimensions()
+        local pageSize = 2
+        local pageCount = math.max(1, math.ceil(#entries / pageSize))
+        page = math.min(page, pageCount)
+
+        drawHeader(tr("notifications"), accountName)
+
+        if #entries == 0 then
+            drawMessage(tr("noNotifications"), 11, palette.muted)
+        else
+            for slot = 1, pageSize do
+                local entry = entries[(page - 1) * pageSize + slot]
+                local y = 9 + (slot - 1) * 4
+
+                if entry then
+                    local dateText = os.date("%d.%m.%Y %H:%M", math.floor((entry.time or 0) / 1000))
+                    local senderName = tostring(entry.otherName or ("#" .. tostring(entry.from)))
+                    drawText(y, dateText, palette.muted)
+                    drawText(y + 1, "FROM " .. senderName, palette.text)
+                    drawText(y + 2, "+" .. tostring(entry.amount or 0) .. " BC", palette.success)
+                end
+            end
+        end
+
+        local navWidth = math.floor((width - 2) / 3)
+        local buttonY = height - 4
+        drawSmallButton("back", tr("backPage"), 1, buttonY, navWidth, nil, "primary")
+        drawSmallButton("previous", tr("previousPage"), navWidth + 2, buttonY, navWidth, nil)
+        drawSmallButton("next", tr("nextPage"), navWidth * 2 + 3, buttonY, width - (navWidth * 2 + 2), nil)
+        drawFooter(tostring(page) .. " / " .. tostring(pageCount) .. "  |  TAP TO NAVIGATE")
+
+        local choice = waitChoice()
+        if choice == "back" then
+            return
+        elseif choice == "previous" and page > 1 then
+            page = page - 1
+        elseif choice == "next" and page < pageCount then
+            page = page + 1
+        end
+    end
+end
+
 local function accountMenu()
     while accountId do
         drawHeader("ACCOUNT OVERVIEW", accountName)
         drawText(8, tr("available"), palette.muted)
         drawPanel(10, tostring(balance) .. " BC", palette.goldLight)
-        drawLine(11, "-", palette.surface)
+        drawButton("refresh", tr("refresh"), 13, nil)
+        drawLine(15, "-", palette.surface)
 
-        drawButton("profile", tr("profile"), 12, "1", "primary")
-        drawButton("transfer", tr("transfer"), 14, "2")
-        drawButton("history", tr("history"), 16, "3")
-        drawButton("refresh", tr("refresh"), 18, "4")
-        drawFooter("1 PROFILE  2 SEND  3 HISTORY  4 REFRESH")
+        local width, height = dimensions()
+        local tabWidth = math.floor(width / 4)
+        local tabY = height - 2
+        drawSmallButton("profile", "PROF", 1, tabY, tabWidth, nil, "primary")
+        drawSmallButton("transfer", "SEND", tabWidth + 1, tabY, tabWidth, nil)
+        drawSmallButton("history", "HIST", tabWidth * 2 + 1, tabY, tabWidth, nil)
+        drawSmallButton("notifications", "INBOX", tabWidth * 3 + 1, tabY, width - tabWidth * 3, nil)
 
         local choice = waitChoice()
 
@@ -830,6 +891,8 @@ local function accountMenu()
             transfer()
         elseif choice == "history" then
             showHistory()
+        elseif choice == "notifications" then
+            showNotifications()
         elseif choice == "refresh" then
             if updateBalance() then
                 pause(tr("balanceUpdated"))
@@ -858,9 +921,9 @@ while true do
     drawText(8, "YOUR MONEY,", palette.muted)
     drawText(9, "UNDER CONTROL.", palette.goldLight)
 
-    drawButton("login", tr("login"), 12, "1", "primary")
-    drawButton("register", tr("register"), 16, "2")
-    drawFooter("1 SIGN IN  |  2 REGISTER")
+    drawButton("login", tr("login"), 12, nil, "primary")
+    drawButton("register", tr("register"), 16, nil)
+    drawFooter("SELECT AN OPTION")
 
     local choice = waitChoice()
 
