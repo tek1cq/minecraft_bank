@@ -139,7 +139,21 @@ local function handle(sender, request)
             local entry = history[index]
             if tostring(entry.from) == tostring(account.id)
                 or tostring(entry.to) == tostring(account.id) then
-                result[#result + 1] = entry
+                local item = {
+                    time = entry.time,
+                    action = entry.action,
+                    from = entry.from,
+                    to = entry.to,
+                    amount = entry.amount
+                }
+                if entry.action == "REGISTER" then
+                    item.otherName = "Bank"
+                else
+                    local otherId = tostring(entry.from) == tostring(account.id) and entry.to or entry.from
+                    local otherAccount = findAccount(otherId)
+                    item.otherName = otherAccount and otherAccount.name or tostring(otherId)
+                end
+                result[#result + 1] = item
                 if #result >= 40 then
                     break
                 end
