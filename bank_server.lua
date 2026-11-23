@@ -98,7 +98,8 @@ local function handle(sender, request)
             message = "ACCOUNT CREATED",
             id = id,
             name = name,
-            balance = settings.startingBalance
+            balance = settings.startingBalance,
+            created = findAccount(id).created
         }
     end
     if request.action == "CHECK_ID" then
@@ -132,7 +133,8 @@ local function handle(sender, request)
             ok = true,
             id = account.id,
             name = account.name,
-            balance = account.balance
+            balance = account.balance,
+            created = account.created
         }
     end
     if request.action == "HISTORY" then
