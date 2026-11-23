@@ -135,10 +135,11 @@ local function center(y, value, fg)
 
     local bankText = cutText(tr("bank"), screenW)
     local bankX = math.floor((screenW - #bankText) / 2) + 1
-    local centerX = bankX + math.floor((#bankText - 1) / 2)
+    -- BANK has an even width, so its visual midpoint is between its two middle columns.
+    local centerX = bankX + math.floor(#bankText / 2)
 
     local valueText = cutText(tostring(value), screenW)
-    local textX = centerX - math.floor((#valueText - 1) / 2)
+    local textX = centerX - math.floor(#valueText / 2)
     textX = math.max(1, math.min(textX, screenW - #valueText + 1))
 
     term.setBackgroundColor(colors.black)
