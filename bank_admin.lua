@@ -1,6 +1,7 @@
 local ROOT = "bank_data"
 local ACCOUNTS = ROOT .. "/accounts.db"
 local HISTORY = ROOT .. "/transactions.db"
+
 local function load(path)
     local f = fs.open(path, "r")
     if not f then return nil end
@@ -8,19 +9,23 @@ local function load(path)
     f.close()
     return data
 end
+
 local function save(path, data)
     local f = fs.open(path, "w")
     f.write(textutils.serialize(data))
     f.close()
 end
+
 local function pause()
     print("")
     print("Press ENTER to continue...")
     read()
 end
+
 local function getAccount(db, id)
     return db.accounts[tostring(id)]
 end
+
 local function log(action, id, amount, details)
     local history = load(HISTORY) or {}
     table.insert(history, {
@@ -32,6 +37,7 @@ local function log(action, id, amount, details)
     })
     save(HISTORY, history)
 end
+
 local function inputNumber(message)
     write(message)
     local value = tonumber(read())
@@ -41,6 +47,7 @@ local function inputNumber(message)
     end
     return value
 end
+
 local function findPlayer()
     local db = load(ACCOUNTS)
     write("Bank ID: ")
@@ -56,6 +63,7 @@ local function findPlayer()
     print("Balance: " .. account.balance .. " BC")
     print("Blocked: " .. tostring(account.blocked))
 end
+
 local function changeBalance(mode)
     local db = load(ACCOUNTS)
     write("Player Bank ID: ")
@@ -81,6 +89,7 @@ local function changeBalance(mode)
     print("Operation successful.")
     print("New balance: " .. account.balance .. " BC")
 end
+
 local function toggleBlock()
     local db = load(ACCOUNTS)
     write("Player Bank ID: ")
@@ -95,6 +104,7 @@ local function toggleBlock()
     log("ADMIN_BLOCK", account.id, 0, tostring(account.blocked))
     print("Blocked: " .. tostring(account.blocked))
 end
+
 local function showHistory()
     local history = load(HISTORY) or {}
     print("=== LAST TRANSACTIONS ===")
@@ -107,6 +117,7 @@ local function showHistory()
         )
     end
 end
+
 local function showStatistics()
     local db = load(ACCOUNTS)
     local count = 0
@@ -118,6 +129,7 @@ local function showStatistics()
     print("Registered accounts: " .. count)
     print("Total money in circulation: " .. total .. " BC")
 end
+
 while true do
     term.clear()
     term.setCursorPos(1, 1)
